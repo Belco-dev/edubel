@@ -1,24 +1,14 @@
 import * as XLSX from 'xlsx';
-import { Student, StudentMark } from '@/types/reportCard';
+import { ParsedStudent } from '@/types/reportCard';
 
 export interface ParseResult {
   success: boolean;
-  students: Student[];
+  students: ParsedStudent[];
   detectedSubjects: string[];
   error?: string;
 }
 
-function generateRemark(percentage: number): string {
-  if (percentage >= 90) return 'Excellent! Outstanding performance!';
-  if (percentage >= 80) return 'Very Good! Keep up the great work!';
-  if (percentage >= 70) return 'Good performance. Continue working hard!';
-  if (percentage >= 60) return 'Satisfactory. Room for improvement.';
-  if (percentage >= 50) return 'Fair. More effort needed.';
-  if (percentage >= 40) return 'Needs improvement. Please work harder.';
-  return 'Poor performance. Requires extra support and attention.';
-}
-
-export function parseExcelFile(file: File): Promise<ParseResult> {
+export function parseExcelFile(file: File, mttMax: number, examMax: number, conductMax: number): Promise<ParseResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     
@@ -41,6 +31,8 @@ export function parseExcelFile(file: File): Promise<ParseResult> {
         }
         
         const headers = jsonData[0] as string[];
+        
+        // Find the name column
         const nameColumnIndex = headers.findIndex(
           (h) => h && (
             h.toString().toLowerCase().includes('name') ||
@@ -53,55 +45,81 @@ export function parseExcelFile(file: File): Promise<ParseResult> {
             success: false,
             students: [],
             detectedSubjects: [],
-            error: 'Could not find a "Name" or "Student" column. Please ensure your Excel has a column with student names.',
+            error: 'Could not find a "Name" or "Student" column.',
           });
           return;
         }
+
+        // Find conduct column
+        const conductColumnIndex = headers.findIndex(
+          (h) => h && h.toString().toLowerCase().includes('conduct')
+        );
         
-        // Detect subjects - looking for columns that might be subjects
-        // Format expected: Subject Name, Subject Max, Subject Obtained OR Subject (marks/max)
+        // Detect subjects - Format: Subject_MTT, Subject_EXAM columns
+        // OR just Subject column with marks
         const detectedSubjects: string[] = [];
-        const subjectColumns: { name: string; maxIndex?: number; obtainedIndex: number; maxValue?: number }[] = [];
+        const subjectColumns: { 
+          name: string; 
+          mttIndex?: number; 
+          examIndex?: number;
+          singleIndex?: number;
+        }[] = [];
+        
+        // First pass: find all subject patterns
+        const processedIndices = new Set<number>();
+        processedIndices.add(nameColumnIndex);
+        if (conductColumnIndex !== -1) processedIndices.add(conductColumnIndex);
         
         headers.forEach((header, index) => {
-          if (index === nameColumnIndex) return;
-          if (!header) return;
+          if (processedIndices.has(index) || !header) return;
           
-          const headerStr = header.toString().toLowerCase();
+          const headerStr = header.toString();
+          const headerLower = headerStr.toLowerCase();
           
-          // Skip common non-subject columns
-          if (headerStr.includes('position') || headerStr.includes('total') || 
-              headerStr.includes('percentage') || headerStr.includes('remark') ||
-              headerStr.includes('rank') || headerStr.includes('grade')) {
+          // Skip non-subject columns
+          if (headerLower.includes('total') || headerLower.includes('percentage') || 
+              headerLower.includes('position') || headerLower.includes('rank') ||
+              headerLower.includes('grade') || headerLower.includes('remark') ||
+              headerLower.includes('max') || headerLower.includes('conduct')) {
             return;
           }
           
-          // Check if this is a max marks column
-          if (headerStr.includes('max')) {
-            return;
-          }
-          
-          // Check if next column is max marks
-          const nextHeader = headers[index + 1]?.toString().toLowerCase() || '';
-          if (nextHeader.includes('max')) {
-            detectedSubjects.push(header.toString());
-            subjectColumns.push({
-              name: header.toString(),
-              obtainedIndex: index,
-              maxIndex: index + 1,
-            });
+          // Check for MTT/EXAM pattern in column name
+          if (headerLower.includes('_mtt') || headerLower.includes(' mtt')) {
+            const subjectName = headerStr.replace(/_mtt|_MTT| mtt| MTT/gi, '').trim();
+            // Find corresponding EXAM column
+            const examIndex = headers.findIndex((h, i) => 
+              h && (h.toString().toLowerCase().includes(subjectName.toLowerCase()) && 
+                   (h.toString().toLowerCase().includes('_exam') || h.toString().toLowerCase().includes(' exam')))
+            );
+            
+            if (!detectedSubjects.includes(subjectName)) {
+              detectedSubjects.push(subjectName);
+              subjectColumns.push({
+                name: subjectName,
+                mttIndex: index,
+                examIndex: examIndex !== -1 ? examIndex : undefined,
+              });
+              processedIndices.add(index);
+              if (examIndex !== -1) processedIndices.add(examIndex);
+            }
+          } else if (headerLower.includes('_exam') || headerLower.includes(' exam')) {
+            // Skip - already handled with MTT
           } else {
-            // Assume it's a single column with marks
-            detectedSubjects.push(header.toString());
-            subjectColumns.push({
-              name: header.toString(),
-              obtainedIndex: index,
-              maxValue: 100, // Default max marks
-            });
+            // Single column subject (marks only)
+            if (!detectedSubjects.includes(headerStr)) {
+              detectedSubjects.push(headerStr);
+              subjectColumns.push({
+                name: headerStr,
+                singleIndex: index,
+              });
+              processedIndices.add(index);
+            }
           }
         });
         
-        const students: Student[] = [];
+        const totalMax = subjectColumns.length * (mttMax + examMax);
+        const students: ParsedStudent[] = [];
         
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i] as (string | number)[];
@@ -109,48 +127,46 @@ export function parseExcelFile(file: File): Promise<ParseResult> {
           
           if (!fullName || fullName.trim() === '') continue;
           
-          const marks: StudentMark[] = [];
-          let totalObtained = 0;
-          let totalMax = 0;
+          const marks: { subject: string; mtt: number; exam: number; total: number }[] = [];
+          let totalMarks = 0;
           
           subjectColumns.forEach((col) => {
-            const obtained = Number(row[col.obtainedIndex]) || 0;
-            const max = col.maxIndex !== undefined 
-              ? Number(row[col.maxIndex]) || 100 
-              : col.maxValue || 100;
+            let mtt = 0;
+            let exam = 0;
             
-            marks.push({
-              subject: col.name,
-              obtainedMarks: obtained,
-              maxMarks: max,
-            });
+            if (col.mttIndex !== undefined) {
+              mtt = Number(row[col.mttIndex]) || 0;
+            }
+            if (col.examIndex !== undefined) {
+              exam = Number(row[col.examIndex]) || 0;
+            }
+            if (col.singleIndex !== undefined) {
+              // If single column, treat as total and split proportionally
+              const total = Number(row[col.singleIndex]) || 0;
+              exam = total;
+              mtt = 0;
+            }
             
-            totalObtained += obtained;
-            totalMax += max;
+            const total = mtt + exam;
+            marks.push({ subject: col.name, mtt, exam, total });
+            totalMarks += total;
           });
           
-          const percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0;
+          const conductMarks = conductColumnIndex !== -1 
+            ? Number(row[conductColumnIndex]) || 0 
+            : 0;
+          
+          const percentage = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
           
           students.push({
-            id: `student-${i}`,
             fullName: fullName.trim(),
             marks,
-            totalMarks: totalObtained,
-            maxTotalMarks: totalMax,
+            conductMarks,
+            totalMarks,
+            maxMarks: totalMax,
             percentage,
-            position: 0, // Will be calculated after sorting
-            remark: generateRemark(percentage),
           });
         }
-        
-        // Sort by percentage and assign positions
-        students.sort((a, b) => b.percentage - a.percentage);
-        students.forEach((student, index) => {
-          student.position = index + 1;
-        });
-        
-        // Re-sort by name for display
-        students.sort((a, b) => a.fullName.localeCompare(b.fullName));
         
         resolve({
           success: true,
