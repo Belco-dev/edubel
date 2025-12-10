@@ -18,6 +18,7 @@ export interface SubjectMark {
   mtt: number; // Midterm Test marks
   exam: number; // End of term exam marks
   total: number; // Total out of maxTotal
+  rank?: number; // Subject rank among all students
 }
 
 export interface TermData {

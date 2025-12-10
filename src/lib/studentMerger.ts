@@ -55,6 +55,40 @@ export function mergeStudentsFromSections(sections: TermSection[], settings: Mar
     });
   }
   
+  // Calculate subject ranks for each subject
+  if (students.length > 0 && students[0].terms.length > 0) {
+    const subjects = students[0].terms[0].subjects.map(s => s.subject);
+    
+    subjects.forEach(subject => {
+      // Get all students' totals for this subject (across all terms)
+      const subjectTotals = students.map(student => {
+        let total = 0;
+        student.terms.forEach(term => {
+          const mark = term.subjects.find(s => s.subject === subject);
+          if (mark) total += mark.total;
+        });
+        return { studentId: student.id, total };
+      });
+      
+      // Sort by total descending and assign ranks
+      subjectTotals.sort((a, b) => b.total - a.total);
+      const ranks = new Map<string, number>();
+      subjectTotals.forEach((item, idx) => {
+        ranks.set(item.studentId, idx + 1);
+      });
+      
+      // Assign rank to each student's subject marks
+      students.forEach(student => {
+        student.terms.forEach(term => {
+          const mark = term.subjects.find(s => s.subject === subject);
+          if (mark) {
+            mark.rank = ranks.get(student.id);
+          }
+        });
+      });
+    });
+  }
+  
   // Sort by percentage and assign positions
   students.sort((a, b) => b.overallPercentage - a.overallPercentage);
   students.forEach((student, index) => {
