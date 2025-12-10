@@ -84,19 +84,19 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFont('helvetica', 'normal');
   doc.text(classTeacher || '________________', pageWidth / 2 + 30, 48);
   
-  // Build table headers
+  // Build table headers - matching reference format: SUBJECTS | TEST | EX | TOT (per term) | Rank | Comments
   const selectedSections = sections.filter(s => s.selected && s.parsedData);
   const tableHeaders: string[][] = [
-    ['#', 'Subject'],
-    ['', ''],
+    ['SUBJECTS'],
+    [''],
   ];
   
   selectedSections.forEach(section => {
     tableHeaders[0].push(section.shortName, '', '');
-    tableHeaders[1].push('MTT', 'EXM', 'TOT');
+    tableHeaders[1].push('TEST', 'EX', 'TOT');
   });
-  tableHeaders[0].push('Total');
-  tableHeaders[1].push('');
+  tableHeaders[0].push('Rank', 'Comments');
+  tableHeaders[1].push('', '');
   
   // Build table data
   const allSubjects = student.terms[0]?.subjects || [];
@@ -106,120 +106,108 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   const tableData: (string | number)[][] = [];
   
-  filteredSubjects.forEach((subjectData, index) => {
-    const row: (string | number)[] = [index + 1, subjectData.subject];
-    let rowTotal = 0;
+  filteredSubjects.forEach((subjectData) => {
+    const row: (string | number)[] = [subjectData.subject];
     
     student.terms.forEach(term => {
       const mark = term.subjects.find(s => s.subject === subjectData.subject);
-      row.push(mark?.mtt || 0, mark?.exam || 0, mark?.total || 0);
-      if (mark) rowTotal += mark.total;
+      const hasMtt = mark && mark.mtt > 0;
+      const hasExam = mark && mark.exam > 0;
+      row.push(
+        hasMtt ? mark.mtt : '-', 
+        hasExam ? mark.exam : '-', 
+        mark?.total || '-'
+      );
     });
     
-    row.push(rowTotal);
+    row.push(subjectData.rank || '-', ''); // Rank and Comments (blank)
     tableData.push(row);
   });
   
   // Total row
-  const totalRow: (string | number)[] = ['', 'TOTAL'];
-  let grandTotal = 0;
+  const totalRow: (string | number)[] = ['Total'];
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    totalRow.push(termMtt, termExam, term.totalMarks);
-    grandTotal += term.totalMarks;
+    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
   });
-  totalRow.push(grandTotal);
+  totalRow.push('', '');
   tableData.push(totalRow);
+  
+  // Average row
+  const avgRow: (string | number)[] = ['Average', `${student.overallPercentage.toFixed(1)}%`];
+  for (let i = 1; i < selectedSections.length * 3 - 1; i++) {
+    if (i === 1) avgRow.push('Rank');
+    else avgRow.push('');
+  }
+  avgRow.push(student.position.toString(), '');
+  tableData.push(avgRow);
   
   // Calculate column widths dynamically
   const numTerms = selectedSections.length;
-  const fixedWidth = 10 + 35; // # + Subject columns
-  const totalColWidth = 18;
-  const termColWidth = Math.min(15, (pageWidth - 20 - fixedWidth - totalColWidth) / (numTerms * 3));
+  const subjectColWidth = 35;
+  const termColWidth = 10;
+  const rankColWidth = 12;
+  const commentsColWidth = 25;
   
   const columnStyles: Record<number, { cellWidth: number; halign?: 'left' | 'center' | 'right' }> = {
-    0: { cellWidth: 8, halign: 'center' },
-    1: { cellWidth: 35, halign: 'left' },
+    0: { cellWidth: subjectColWidth, halign: 'left' },
   };
   
-  for (let i = 2; i < 2 + numTerms * 3; i++) {
+  for (let i = 1; i <= numTerms * 3; i++) {
     columnStyles[i] = { cellWidth: termColWidth, halign: 'center' };
   }
-  columnStyles[2 + numTerms * 3] = { cellWidth: totalColWidth, halign: 'center' };
+  columnStyles[numTerms * 3 + 1] = { cellWidth: rankColWidth, halign: 'center' };
+  columnStyles[numTerms * 3 + 2] = { cellWidth: commentsColWidth, halign: 'left' };
   
   autoTable(doc, {
     startY: 62,
     head: [tableHeaders[0], tableHeaders[1]],
     body: tableData,
     theme: 'grid',
-    styles: { fontSize: 7, cellPadding: 1.5 },
-    headStyles: { fillColor: primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 7 },
-    bodyStyles: { halign: 'center' },
+    styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.2 },
+    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', fontSize: 7 },
+    bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
-    alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
+      // Bold the total row
+      if (data.row.index === tableData.length - 2) {
+        data.cell.styles.fontStyle = 'bold';
+      }
+      // Style average row
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = [226, 232, 240];
+        data.cell.styles.fillColor = [248, 248, 248];
       }
     },
   });
   
   const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   
-  // Position, Percentage, Grade - Below Table
-  doc.setFillColor(240, 253, 250);
-  doc.roundedRect(10, finalY + 5, pageWidth - 20, 18, 2, 2, 'F');
+  // Observations and Signatures box - matching reference layout
+  const boxY = finalY + 5;
+  const boxHeight = 35;
   
-  const gradeColor = getGradeColor(student.overallPercentage);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
-  doc.text('Position:', 15, finalY + 12);
-  doc.setTextColor(...gradeColor);
-  doc.text(`${student.position} / ${totalStudents}`, 38, finalY + 12);
-  
-  doc.setTextColor(0, 0, 0);
-  doc.text('Percentage:', 65, finalY + 12);
-  doc.setTextColor(...gradeColor);
-  doc.text(`${student.overallPercentage.toFixed(1)}%`, 95, finalY + 12);
-  
-  doc.setTextColor(0, 0, 0);
-  doc.text('Grade:', 125, finalY + 12);
-  doc.setTextColor(...gradeColor);
-  doc.text(getGrade(student.overallPercentage), 145, finalY + 12);
-  
-  doc.setTextColor(0, 0, 0);
-  doc.text('Total:', 165, finalY + 12);
-  doc.text(`${student.grandTotal}`, 182, finalY + 12);
-  
-  // Teacher's Remark - Blank
-  doc.setFillColor(254, 249, 195);
-  doc.roundedRect(10, finalY + 28, pageWidth - 20, 22, 2, 2, 'F');
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Teacher's Remark:", 15, finalY + 36);
-  doc.setDrawColor(180, 180, 180);
+  // Draw observation/signature box
+  doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
-  doc.line(15, finalY + 43, pageWidth - 15, finalY + 43);
+  doc.rect(10, boxY, pageWidth - 20, boxHeight);
   
-  // Signatures
-  const signatureY = finalY + 58;
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.4);
+  // Vertical divider
+  const dividerX = 10 + (pageWidth - 20) / 2;
+  doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
   
-  doc.line(15, signatureY + 12, 60, signatureY + 12);
+  // Horizontal divider for signatures
+  doc.line(dividerX, boxY + boxHeight / 2, pageWidth - 10, boxY + boxHeight / 2);
+  
+  // Labels
   doc.setFontSize(8);
-  doc.text('Class Teacher', 27, signatureY + 18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Observations', 12, boxY + 6);
+  doc.text('Teacher Signature', dividerX + 3, boxY + 6);
+  doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
-  doc.line(75, signatureY + 12, 125, signatureY + 12);
-  doc.text('Head Teacher', 88, signatureY + 18);
-  
-  doc.line(140, signatureY + 12, pageWidth - 15, signatureY + 12);
-  doc.text('Parent/Guardian', 150, signatureY + 18);
   
   // Footer
   const footerY = doc.internal.pageSize.getHeight() - 12;

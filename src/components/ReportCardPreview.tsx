@@ -226,118 +226,118 @@ export function ReportCardPreview({ students, school, selectedSubjects, sections
             </div>
           </div>
 
-          {/* Marks Table - Multi-term with MTT, EXAM, TOTAL columns */}
+          {/* Marks Table - Matching reference format: TEST | EX | TOT per term + Rank + Comments */}
           <div className="p-2 sm:p-4 overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm border-collapse min-w-[500px]">
+            <table className="w-full text-xs sm:text-sm border-collapse min-w-[400px]">
               <thead>
                 <tr className="bg-muted">
-                  <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>#</th>
-                  <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>Subject</th>
+                  <th className="text-left p-1 sm:p-2 font-semibold border border-border w-[120px]">SUBJECTS</th>
                   {selectedSections.map((section) => (
-                    <th key={section.id} className="text-center p-1 sm:p-2 font-semibold border border-border bg-primary/10" colSpan={3}>
+                    <th key={section.id} className="text-center p-1 font-semibold border border-border" colSpan={3}>
                       {section.shortName}
                     </th>
                   ))}
-                  <th className="text-center p-1 sm:p-2 font-semibold border border-border bg-green/10" rowSpan={2}>Total</th>
+                  <th className="text-center p-1 font-semibold border border-border">Rank</th>
+                  <th className="text-center p-1 font-semibold border border-border w-[80px]">Comments</th>
                 </tr>
                 <tr className="bg-muted/50">
+                  <th className="border border-border"></th>
                   {selectedSections.map((section) => (
                     <>
-                      <th key={`${section.id}-mtt`} className="text-center p-1 font-medium border border-border text-xs">MTT</th>
-                      <th key={`${section.id}-exam`} className="text-center p-1 font-medium border border-border text-xs">EXAM</th>
-                      <th key={`${section.id}-total`} className="text-center p-1 font-medium border border-border text-xs bg-muted/80">TOT</th>
+                      <th key={`${section.id}-test`} className="text-center p-1 font-medium border border-border text-xs">TEST</th>
+                      <th key={`${section.id}-ex`} className="text-center p-1 font-medium border border-border text-xs">EX</th>
+                      <th key={`${section.id}-tot`} className="text-center p-1 font-medium border border-border text-xs">TOT</th>
                     </>
                   ))}
+                  <th className="border border-border"></th>
+                  <th className="border border-border"></th>
                 </tr>
               </thead>
               <tbody>
-                {filteredSubjects.map((subjectData, index) => {
-                  let rowTotal = 0;
+                {filteredSubjects.map((subjectData) => {
                   return (
                     <tr key={subjectData.subject} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-1 sm:p-2 text-muted-foreground border border-border text-center">{index + 1}</td>
                       <td className="p-1 sm:p-2 font-medium border border-border">{subjectData.subject}</td>
                       {currentStudent.terms.map((term) => {
                         const mark = term.subjects.find(s => s.subject === subjectData.subject);
-                        if (mark) rowTotal += mark.total;
+                        const hasMtt = mark && mark.mtt > 0;
+                        const hasExam = mark && mark.exam > 0;
                         return (
                           <>
-                            <td key={`${term.termId}-mtt`} className="p-1 sm:p-2 text-center border border-border">{mark?.mtt || 0}</td>
-                            <td key={`${term.termId}-exam`} className="p-1 sm:p-2 text-center border border-border">{mark?.exam || 0}</td>
-                            <td key={`${term.termId}-total`} className="p-1 sm:p-2 text-center border border-border bg-muted/30 font-medium">{mark?.total || 0}</td>
+                            <td key={`${term.termId}-test`} className="p-1 text-center border border-border">
+                              {hasMtt ? mark.mtt : '-'}
+                            </td>
+                            <td key={`${term.termId}-ex`} className="p-1 text-center border border-border">
+                              {hasExam ? mark.exam : '-'}
+                            </td>
+                            <td key={`${term.termId}-tot`} className="p-1 text-center border border-border font-medium">
+                              {mark?.total || '-'}
+                            </td>
                           </>
                         );
                       })}
-                      <td className="p-1 sm:p-2 text-center border border-border bg-green/10 font-semibold">{rowTotal}</td>
+                      <td className="p-1 text-center border border-border font-medium">{subjectData.rank || '-'}</td>
+                      <td className="p-1 text-center border border-border"></td>
                     </tr>
                   );
                 })}
                 {/* Total Row */}
                 <tr className="bg-muted font-semibold">
-                  <td className="p-1 sm:p-2 border border-border" colSpan={2}>TOTAL</td>
+                  <td className="p-1 sm:p-2 border border-border">Total</td>
                   {currentStudent.terms.map((term) => {
                     const termMttTotal = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
                     const termExamTotal = term.subjects.reduce((sum, s) => sum + s.exam, 0);
                     return (
                       <>
-                        <td key={`${term.termId}-mtt-total`} className="p-1 sm:p-2 text-center border border-border">{termMttTotal}</td>
-                        <td key={`${term.termId}-exam-total`} className="p-1 sm:p-2 text-center border border-border">{termExamTotal}</td>
-                        <td key={`${term.termId}-total-total`} className="p-1 sm:p-2 text-center border border-border bg-muted/80">{term.totalMarks}</td>
+                        <td key={`${term.termId}-mtt-total`} className="p-1 text-center border border-border">{termMttTotal || '-'}</td>
+                        <td key={`${term.termId}-exam-total`} className="p-1 text-center border border-border">{termExamTotal || '-'}</td>
+                        <td key={`${term.termId}-total-total`} className="p-1 text-center border border-border">{term.totalMarks}</td>
                       </>
                     );
                   })}
-                  <td className="p-1 sm:p-2 text-center border border-border bg-green/20">{currentStudent.grandTotal}</td>
+                  <td className="p-1 text-center border border-border"></td>
+                  <td className="p-1 text-center border border-border"></td>
+                </tr>
+                {/* Average Row */}
+                <tr className="bg-muted/50">
+                  <td className="p-1 sm:p-2 border border-border font-medium">Average</td>
+                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage)}`} colSpan={selectedSections.length > 0 ? 2 : 1}>
+                    {currentStudent.overallPercentage.toFixed(1)}%
+                  </td>
+                  <td className="p-1 text-center border border-border font-medium">Rank</td>
+                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage)}`} colSpan={selectedSections.length > 1 ? selectedSections.length : 1}>
+                    {currentStudent.position}
+                  </td>
+                  <td className="p-1 text-center border border-border" colSpan={2}></td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Position - Below Table */}
-          <div className="mx-2 sm:mx-4 p-3 sm:p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl mb-4 flex flex-wrap justify-between items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div>
-                <span className="text-xs sm:text-sm text-muted-foreground">Position</span>
-                <p className={`font-bold text-xl sm:text-2xl ${getGradeColor(currentStudent.overallPercentage)}`}>
-                  {currentStudent.position}<span className="text-sm">/{students.length}</span>
-                </p>
+          {/* Observations - Blank for teacher handwriting */}
+          <div className="mx-2 sm:mx-4 mb-3">
+            <div className="border border-border">
+              <div className="grid grid-cols-2">
+                <div className="border-r border-border p-2">
+                  <span className="text-xs font-semibold block mb-1">Observations</span>
+                  <div className="h-12 sm:h-16" />
+                </div>
+                <div className="p-2">
+                  <div className="border-b border-border pb-2 mb-2">
+                    <span className="text-xs font-semibold">Teacher Signature</span>
+                    <div className="h-6 sm:h-8" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold">Parent Signature</span>
+                    <div className="h-6 sm:h-8" />
+                  </div>
+                </div>
               </div>
-              <div className="border-l border-border pl-4">
-                <span className="text-xs sm:text-sm text-muted-foreground">Percentage</span>
-                <p className={`font-bold text-lg sm:text-xl ${getGradeColor(currentStudent.overallPercentage)}`}>
-                  {currentStudent.overallPercentage.toFixed(1)}%
-                </p>
-              </div>
-              <div className="border-l border-border pl-4">
-                <span className="text-xs sm:text-sm text-muted-foreground">Grade</span>
-                <p className={`font-bold text-lg sm:text-xl ${getGradeColor(currentStudent.overallPercentage)}`}>
-                  {getGrade(currentStudent.overallPercentage)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Teacher's Remark - Blank for handwriting */}
-          <div className="mx-2 sm:mx-4 p-3 bg-accent/10 rounded-xl mb-4 border-2 border-dashed border-accent/30">
-            <span className="text-sm font-medium">Teacher's Remark:</span>
-            <div className="h-12 sm:h-16 border-b border-dashed border-muted-foreground mt-2" />
-          </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 border-t border-border">
-            <div className="text-center">
-              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Class Teacher</span>
-            </div>
-            <div className="text-center">
-              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Head Teacher</span>
-            </div>
-            <div className="text-center">
-              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Parent/Guardian</span>
             </div>
           </div>
         </div>
+
+
 
         {/* Download Single Button */}
         <Button 
