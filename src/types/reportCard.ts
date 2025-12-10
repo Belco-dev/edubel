@@ -13,37 +13,32 @@ export interface Subject {
   category: string;
 }
 
-export interface StudentMark {
+export interface SubjectMark {
   subject: string;
-  maxMarks: number;
-  obtainedMarks: number;
+  mtt: number; // Midterm Test marks
+  exam: number; // End of term exam marks
+  total: number; // Total out of maxTotal
 }
 
-export interface StudentTermMarks {
+export interface TermData {
   termId: string;
-  marks: StudentMark[];
+  termName: string;
+  shortName: string;
+  subjects: SubjectMark[];
   totalMarks: number;
-  maxTotalMarks: number;
+  maxMarks: number;
   percentage: number;
 }
 
 export interface Student {
   id: string;
   fullName: string;
-  termMarks: StudentTermMarks[];
-  overallTotal: number;
-  overallMax: number;
+  conductMarks: number;
+  terms: TermData[];
+  grandTotal: number;
+  grandMax: number;
   overallPercentage: number;
   position: number;
-  remark: string;
-}
-
-export interface ReportCardData {
-  school: SchoolData;
-  students: Student[];
-  selectedSubjects: string[];
-  totalStudents: number;
-  classTeacher: string;
 }
 
 export interface TermSection {
@@ -52,8 +47,27 @@ export interface TermSection {
   shortName: string;
   selected: boolean;
   file: File | null;
-  students: StudentTermMarks[];
+  parsedData: ParsedSectionData | null;
+}
+
+export interface ParsedSectionData {
+  students: ParsedStudent[];
   detectedSubjects: string[];
+}
+
+export interface ParsedStudent {
+  fullName: string;
+  marks: { subject: string; mtt: number; exam: number; total: number }[];
+  conductMarks: number;
+  totalMarks: number;
+  maxMarks: number;
+  percentage: number;
+}
+
+export interface MarkSettings {
+  mttMax: number; // Max marks for midterm test per subject
+  examMax: number; // Max marks for exam per subject
+  conductMax: number; // Max marks for conduct
 }
 
 export type ThemeMode = 'light' | 'dark' | 'colorful';

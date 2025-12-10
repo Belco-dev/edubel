@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Student, SchoolData } from '@/types/reportCard';
+import { Student, SchoolData, TermSection, MarkSettings } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ interface ReportCardPreviewProps {
   students: Student[];
   school: SchoolData;
   selectedSubjects: string[];
+  sections: TermSection[];
+  markSettings: MarkSettings;
 }
 
 function getGradeColor(percentage: number): string {
@@ -32,13 +34,14 @@ function getGrade(percentage: number): string {
   return 'E';
 }
 
-export function ReportCardPreview({ students, school, selectedSubjects }: ReportCardPreviewProps) {
+export function ReportCardPreview({ students, school, selectedSubjects, sections, markSettings }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [classTeacher, setClassTeacher] = useState('');
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const currentStudent = students[currentIndex];
+  const selectedSections = sections.filter(s => s.selected && s.parsedData);
 
   const handleDownloadSingle = async (student: Student) => {
     setDownloading(student.id);
@@ -49,6 +52,8 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
         totalStudents: students.length,
         classTeacher,
         selectedSubjects,
+        sections: selectedSections,
+        markSettings,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -67,9 +72,10 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
           totalStudents: students.length,
           classTeacher,
           selectedSubjects,
+          sections: selectedSections,
+          markSettings,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
-        // Small delay between downloads
         await new Promise(resolve => setTimeout(resolve, 300));
       }
     } catch (error) {
@@ -81,21 +87,23 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
   if (students.length === 0) {
     return (
       <Card className="card-hover">
-        <CardContent className="p-12 text-center">
+        <CardContent className="p-8 sm:p-12 text-center">
           <div className="p-4 bg-muted rounded-full w-fit mx-auto mb-4">
-            <Users className="h-12 w-12 text-muted-foreground" />
+            <Users className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground" />
           </div>
-          <h3 className="text-xl font-display font-semibold mb-2">No Students Yet</h3>
-          <p className="text-muted-foreground">
-            Upload an Excel file with student data to generate report cards
+          <h3 className="text-lg sm:text-xl font-display font-semibold mb-2">No Students Yet</h3>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Upload Excel files with student data to generate report cards
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const filteredMarks = currentStudent.marks.filter(m => 
-    selectedSubjects.length === 0 || selectedSubjects.includes(m.subject)
+  // Get all subjects from first term
+  const allSubjects = currentStudent.terms[0]?.subjects || [];
+  const filteredSubjects = allSubjects.filter(s => 
+    selectedSubjects.length === 0 || selectedSubjects.includes(s.subject)
   );
 
   return (
@@ -103,20 +111,20 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
       <CardHeader className="bg-gradient-hero text-primary-foreground">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <CardTitle className="flex items-center gap-2 font-display">
+            <CardTitle className="flex items-center gap-2 font-display text-lg sm:text-xl">
               <Eye className="h-5 w-5" />
               Report Card Preview
             </CardTitle>
             <CardDescription className="text-primary-foreground/80">
-              Preview and download student report cards
+              Preview and download report cards
             </CardDescription>
           </div>
-          <Badge className="bg-background/20 text-primary-foreground text-lg px-4 py-1">
+          <Badge className="bg-background/20 text-primary-foreground text-base sm:text-lg px-3 sm:px-4 py-1">
             {students.length} Students
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Class Teacher Input */}
         <div className="space-y-2">
           <Label htmlFor="classTeacher">Class Teacher Name</Label>
@@ -143,13 +151,13 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
           ) : (
             <>
               <FileDown className="h-5 w-5 mr-2" />
-              Download All Report Cards ({students.length})
+              Download All ({students.length})
             </>
           )}
         </Button>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between bg-muted/50 p-3 rounded-xl">
+        <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
           <Button
             variant="ghost"
             size="sm"
@@ -157,11 +165,11 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
             disabled={currentIndex === 0}
             className="btn-bounce"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
+            <ChevronLeft className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">Previous</span>
           </Button>
-          <span className="text-sm font-medium">
-            Student {currentIndex + 1} of {students.length}
+          <span className="text-xs sm:text-sm font-medium">
+            {currentIndex + 1} / {students.length}
           </span>
           <Button
             variant="ghost"
@@ -170,123 +178,163 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
             disabled={currentIndex === students.length - 1}
             className="btn-bounce"
           >
-            Next
-            <ChevronRight className="h-4 w-4 ml-1" />
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="h-4 w-4 sm:ml-1" />
           </Button>
         </div>
 
         {/* Report Card Preview */}
         <div className="border-2 border-border rounded-2xl overflow-hidden bg-card report-card">
           {/* Header */}
-          <div className="bg-gradient-primary p-4 text-primary-foreground">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-display font-bold">{school.name || 'School Name'}</h2>
-                <p className="text-sm opacity-80">{school.address || 'School Address'}</p>
-                <p className="text-sm opacity-80">Contact: {school.contact || 'N/A'}</p>
+          <div className="bg-gradient-primary p-3 sm:p-4 text-primary-foreground">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl font-display font-bold truncate">{school.name || 'School Name'}</h2>
+                <p className="text-xs sm:text-sm opacity-80 truncate">{school.address || 'School Address'}</p>
+                <p className="text-xs sm:text-sm opacity-80">Contact: {school.contact || 'N/A'}</p>
               </div>
               {school.logo && (
                 <img 
                   src={school.logo} 
                   alt="School Logo" 
-                  className="h-16 w-16 object-contain bg-background/20 rounded-lg p-1"
+                  className="h-12 w-12 sm:h-16 sm:w-16 object-contain bg-background/20 rounded-lg p-1 flex-shrink-0"
                 />
               )}
             </div>
             <div className="text-center mt-2">
-              <span className="bg-background/20 px-4 py-1 rounded-full text-sm font-medium">
+              <span className="bg-background/20 px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-medium">
                 {school.termName || 'Term Report Card'}
               </span>
             </div>
           </div>
 
-          {/* Student Info */}
-          <div className="p-4 bg-muted/30">
-            <div className="flex flex-wrap justify-between gap-4">
+          {/* Student Name & Conduct */}
+          <div className="p-3 sm:p-4 bg-muted/30 space-y-3">
+            <div className="flex flex-wrap justify-between gap-2 sm:gap-4">
               <div>
-                <span className="text-sm text-muted-foreground">Student Name</span>
-                <p className="font-semibold text-lg">{currentStudent.fullName}</p>
+                <span className="text-xs sm:text-sm text-muted-foreground">Student Name</span>
+                <p className="font-semibold text-base sm:text-lg">{currentStudent.fullName}</p>
               </div>
-              <div className="text-right">
-                <span className="text-sm text-muted-foreground">Position</span>
-                <p className={`font-bold text-lg ${getGradeColor(currentStudent.percentage)}`}>
-                  {currentStudent.position} / {students.length}
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-sm text-muted-foreground">Overall</span>
-                <p className={`font-bold text-lg ${getGradeColor(currentStudent.percentage)}`}>
-                  {currentStudent.percentage.toFixed(1)}% ({getGrade(currentStudent.percentage)})
-                </p>
-              </div>
+            </div>
+            
+            {/* Conduct Marks - Above Table */}
+            <div className="flex items-center gap-2 p-2 sm:p-3 bg-accent/20 rounded-lg">
+              <span className="font-medium text-sm">Conduct:</span>
+              <span className="font-bold text-primary">
+                {currentStudent.conductMarks} / {markSettings.conductMax}
+              </span>
             </div>
           </div>
 
-          {/* Marks Table */}
-          <div className="p-4 overflow-x-auto">
-            <table className="w-full text-sm">
+          {/* Marks Table - Multi-term with MTT, EXAM, TOTAL columns */}
+          <div className="p-2 sm:p-4 overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm border-collapse min-w-[500px]">
               <thead>
                 <tr className="bg-muted">
-                  <th className="text-left p-2 rounded-l-lg">#</th>
-                  <th className="text-left p-2">Subject</th>
-                  <th className="text-center p-2">Max</th>
-                  <th className="text-center p-2">Obtained</th>
-                  <th className="text-center p-2">%</th>
-                  <th className="text-center p-2 rounded-r-lg">Grade</th>
+                  <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>#</th>
+                  <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>Subject</th>
+                  {selectedSections.map((section) => (
+                    <th key={section.id} className="text-center p-1 sm:p-2 font-semibold border border-border bg-primary/10" colSpan={3}>
+                      {section.shortName}
+                    </th>
+                  ))}
+                  <th className="text-center p-1 sm:p-2 font-semibold border border-border bg-green/10" rowSpan={2}>Total</th>
+                </tr>
+                <tr className="bg-muted/50">
+                  {selectedSections.map((section) => (
+                    <>
+                      <th key={`${section.id}-mtt`} className="text-center p-1 font-medium border border-border text-xs">MTT</th>
+                      <th key={`${section.id}-exam`} className="text-center p-1 font-medium border border-border text-xs">EXAM</th>
+                      <th key={`${section.id}-total`} className="text-center p-1 font-medium border border-border text-xs bg-muted/80">TOT</th>
+                    </>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredMarks.map((mark, index) => {
-                  const pct = (mark.obtainedMarks / mark.maxMarks) * 100;
+                {filteredSubjects.map((subjectData, index) => {
+                  let rowTotal = 0;
                   return (
-                    <tr key={mark.subject} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                      <td className="p-2 text-muted-foreground">{index + 1}</td>
-                      <td className="p-2 font-medium">{mark.subject}</td>
-                      <td className="p-2 text-center">{mark.maxMarks}</td>
-                      <td className="p-2 text-center">{mark.obtainedMarks}</td>
-                      <td className={`p-2 text-center font-medium ${getGradeColor(pct)}`}>
-                        {pct.toFixed(1)}%
-                      </td>
-                      <td className={`p-2 text-center font-bold ${getGradeColor(pct)}`}>
-                        {getGrade(pct)}
-                      </td>
+                    <tr key={subjectData.subject} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-1 sm:p-2 text-muted-foreground border border-border text-center">{index + 1}</td>
+                      <td className="p-1 sm:p-2 font-medium border border-border">{subjectData.subject}</td>
+                      {currentStudent.terms.map((term) => {
+                        const mark = term.subjects.find(s => s.subject === subjectData.subject);
+                        if (mark) rowTotal += mark.total;
+                        return (
+                          <>
+                            <td key={`${term.termId}-mtt`} className="p-1 sm:p-2 text-center border border-border">{mark?.mtt || 0}</td>
+                            <td key={`${term.termId}-exam`} className="p-1 sm:p-2 text-center border border-border">{mark?.exam || 0}</td>
+                            <td key={`${term.termId}-total`} className="p-1 sm:p-2 text-center border border-border bg-muted/30 font-medium">{mark?.total || 0}</td>
+                          </>
+                        );
+                      })}
+                      <td className="p-1 sm:p-2 text-center border border-border bg-green/10 font-semibold">{rowTotal}</td>
                     </tr>
                   );
                 })}
+                {/* Total Row */}
                 <tr className="bg-muted font-semibold">
-                  <td className="p-2" colSpan={2}>TOTAL</td>
-                  <td className="p-2 text-center">{currentStudent.maxTotalMarks}</td>
-                  <td className="p-2 text-center">{currentStudent.totalMarks}</td>
-                  <td className={`p-2 text-center ${getGradeColor(currentStudent.percentage)}`}>
-                    {currentStudent.percentage.toFixed(1)}%
-                  </td>
-                  <td className={`p-2 text-center ${getGradeColor(currentStudent.percentage)}`}>
-                    {getGrade(currentStudent.percentage)}
-                  </td>
+                  <td className="p-1 sm:p-2 border border-border" colSpan={2}>TOTAL</td>
+                  {currentStudent.terms.map((term) => {
+                    const termMttTotal = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
+                    const termExamTotal = term.subjects.reduce((sum, s) => sum + s.exam, 0);
+                    return (
+                      <>
+                        <td key={`${term.termId}-mtt-total`} className="p-1 sm:p-2 text-center border border-border">{termMttTotal}</td>
+                        <td key={`${term.termId}-exam-total`} className="p-1 sm:p-2 text-center border border-border">{termExamTotal}</td>
+                        <td key={`${term.termId}-total-total`} className="p-1 sm:p-2 text-center border border-border bg-muted/80">{term.totalMarks}</td>
+                      </>
+                    );
+                  })}
+                  <td className="p-1 sm:p-2 text-center border border-border bg-green/20">{currentStudent.grandTotal}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          {/* Remark */}
-          <div className="mx-4 p-3 bg-accent/20 rounded-xl mb-4">
+          {/* Position - Below Table */}
+          <div className="mx-2 sm:mx-4 p-3 sm:p-4 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl mb-4 flex flex-wrap justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <span className="text-xs sm:text-sm text-muted-foreground">Position</span>
+                <p className={`font-bold text-xl sm:text-2xl ${getGradeColor(currentStudent.overallPercentage)}`}>
+                  {currentStudent.position}<span className="text-sm">/{students.length}</span>
+                </p>
+              </div>
+              <div className="border-l border-border pl-4">
+                <span className="text-xs sm:text-sm text-muted-foreground">Percentage</span>
+                <p className={`font-bold text-lg sm:text-xl ${getGradeColor(currentStudent.overallPercentage)}`}>
+                  {currentStudent.overallPercentage.toFixed(1)}%
+                </p>
+              </div>
+              <div className="border-l border-border pl-4">
+                <span className="text-xs sm:text-sm text-muted-foreground">Grade</span>
+                <p className={`font-bold text-lg sm:text-xl ${getGradeColor(currentStudent.overallPercentage)}`}>
+                  {getGrade(currentStudent.overallPercentage)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Teacher's Remark - Blank for handwriting */}
+          <div className="mx-2 sm:mx-4 p-3 bg-accent/10 rounded-xl mb-4 border-2 border-dashed border-accent/30">
             <span className="text-sm font-medium">Teacher's Remark:</span>
-            <p className="text-sm mt-1">{currentStudent.remark}</p>
+            <div className="h-12 sm:h-16 border-b border-dashed border-muted-foreground mt-2" />
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-3 gap-4 p-4 border-t border-border">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 border-t border-border">
             <div className="text-center">
-              <div className="h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-xs text-muted-foreground">Class Teacher</span>
+              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Class Teacher</span>
             </div>
             <div className="text-center">
-              <div className="h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-xs text-muted-foreground">Head Teacher</span>
+              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Head Teacher</span>
             </div>
             <div className="text-center">
-              <div className="h-8 border-b border-dashed border-muted-foreground mb-1" />
-              <span className="text-xs text-muted-foreground">Parent/Guardian</span>
+              <div className="h-6 sm:h-8 border-b border-dashed border-muted-foreground mb-1" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Parent/Guardian</span>
             </div>
           </div>
         </div>
@@ -325,13 +373,13 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
                 }`}
                 onClick={() => setCurrentIndex(index)}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-muted-foreground w-6">{student.position}</span>
-                  <span className="font-medium">{student.fullName}</span>
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <span className="text-xs sm:text-sm text-muted-foreground w-5 sm:w-6 flex-shrink-0">{student.position}</span>
+                  <span className="font-medium text-sm truncate">{student.fullName}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className={getGradeColor(student.percentage)}>
-                    {student.percentage.toFixed(1)}%
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                  <Badge variant="secondary" className={`text-xs ${getGradeColor(student.overallPercentage)}`}>
+                    {student.overallPercentage.toFixed(1)}%
                   </Badge>
                   <Button
                     variant="ghost"
@@ -341,7 +389,7 @@ export function ReportCardPreview({ students, school, selectedSubjects }: Report
                       handleDownloadSingle(student);
                     }}
                     disabled={downloading === student.id}
-                    className="h-7 w-7 p-0"
+                    className="h-6 w-6 sm:h-7 sm:w-7 p-0"
                   >
                     {downloading === student.id ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
