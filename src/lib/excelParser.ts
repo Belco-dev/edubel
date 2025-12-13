@@ -23,7 +23,7 @@ interface SubjectColumn {
  * 
  * The system extracts the subject name (before /) and max marks (after /)
  */
-export function parseExcelFile(file: File, defaultMttMax: number, defaultExamMax: number, conductMax: number, isMidtermFile: boolean = false): Promise<ParseResult> {
+export function parseExcelFile(file: File, isMidtermFile: boolean = false): Promise<ParseResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     
@@ -67,7 +67,7 @@ export function parseExcelFile(file: File, defaultMttMax: number, defaultExamMax
 
         // Find conduct column - format: Conduct/MAX
         let conductColumnIndex = -1;
-        let conductMaxFromFile = conductMax;
+        let conductMaxFromFile = 100; // Default if not specified in Excel
         
         headers.forEach((h, index) => {
           if (!h) return;
@@ -106,9 +106,9 @@ export function parseExcelFile(file: File, defaultMttMax: number, defaultExamMax
             return;
           }
           
-          // Parse Subject/MAX format
+          // Parse Subject/MAX format - MAX is required
           let subjectName = headerStr;
-          let maxMarks = isMidtermFile ? defaultMttMax : defaultExamMax;
+          let maxMarks = 100; // Default if no /MAX specified
           
           if (headerStr.includes('/')) {
             const parts = headerStr.split('/');
@@ -173,6 +173,7 @@ export function parseExcelFile(file: File, defaultMttMax: number, defaultExamMax
             fullName: fullName.trim(),
             marks,
             conductMarks: conductMarksValue,
+            conductMax: conductMaxFromFile,
             totalMarks,
             maxMarks: totalMax,
             percentage,

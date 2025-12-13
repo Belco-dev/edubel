@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Student, SchoolData, TermSection, MarkSettings, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermSection, ReportCardStyle } from '@/types/reportCard';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -9,13 +9,12 @@ interface GeneratePDFOptions {
   classTeacher: string;
   selectedSubjects: string[];
   sections: TermSection[];
-  markSettings: MarkSettings;
   hasMidterm: boolean;
   reportCardStyle: ReportCardStyle;
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, classTeacher, selectedSubjects, sections, markSettings, hasMidterm, reportCardStyle } = options;
+  const { student, school, totalStudents, classTeacher, selectedSubjects, sections, hasMidterm, reportCardStyle } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -90,7 +89,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFont('helvetica', 'bold');
   doc.text('Conduct:', 15, currentY + 14);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${student.conductMarks} / ${markSettings.conductMax}`, 40, currentY + 14);
+  doc.text(`${student.conductMarks} / ${student.conductMax}`, 40, currentY + 14);
   
   doc.setFont('helvetica', 'bold');
   doc.text('Class Teacher:', pageWidth / 2, currentY + 8);

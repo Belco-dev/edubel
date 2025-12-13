@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette } from 'lucide-react';
-import { Student, SchoolData, TermSection, MarkSettings, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermSection, ReportCardStyle } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ interface ReportCardPreviewProps {
   school: SchoolData;
   selectedSubjects: string[];
   sections: TermSection[];
-  markSettings: MarkSettings;
   hasMidterm: boolean;
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
@@ -33,7 +32,6 @@ export function ReportCardPreview({
   school, 
   selectedSubjects, 
   sections, 
-  markSettings, 
   hasMidterm,
   reportCardStyle,
   onStyleChange 
@@ -57,7 +55,6 @@ export function ReportCardPreview({
         classTeacher,
         selectedSubjects,
         sections: selectedSections,
-        markSettings,
         hasMidterm,
         reportCardStyle,
       });
@@ -79,7 +76,6 @@ export function ReportCardPreview({
           classTeacher,
           selectedSubjects,
           sections: selectedSections,
-          markSettings,
           hasMidterm,
           reportCardStyle,
         });
@@ -251,7 +247,7 @@ export function ReportCardPreview({
             <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
               <span className="font-medium text-sm">Conduct:</span>
               <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
-                {currentStudent.conductMarks} / {markSettings.conductMax}
+                {currentStudent.conductMarks} / {currentStudent.conductMax}
               </span>
             </div>
           </div>
@@ -443,6 +439,3 @@ export function ReportCardPreview({
     </Card>
   );
 }
-
-// Add React import at the top
-import React from 'react';
