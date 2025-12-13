@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
-import { Building2, User, Phone, Calendar, Upload, ImageIcon, X } from 'lucide-react';
-import { SchoolData } from '@/types/reportCard';
+import { Building2, User, Phone, Calendar, Upload, ImageIcon, X, FileText } from 'lucide-react';
+import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SchoolSetupProps {
   schoolData: SchoolData;
@@ -33,6 +34,17 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
     if (file && file.type.startsWith('image/')) {
       handleLogoUpload(file);
     }
+  };
+
+  const handleCustomDetailChange = (field: 'text' | 'position', value: string) => {
+    const current = schoolData.customDetail || { text: '', position: 'topLeft' as const };
+    onSchoolDataChange({
+      ...schoolData,
+      customDetail: {
+        ...current,
+        [field]: value,
+      } as CustomDetail,
+    });
   };
 
   return (
@@ -138,19 +150,6 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="headTeacher" className="flex items-center gap-2">
-              <User className="h-4 w-4 text-accent" />
-              Head Teacher / Principal
-            </Label>
-            <Input
-              id="headTeacher"
-              placeholder="Principal's name"
-              value={schoolData.headTeacher}
-              onChange={(e) => onSchoolDataChange({ ...schoolData, headTeacher: e.target.value })}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="contact" className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-green" />
               Contact Number
@@ -163,7 +162,7 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
             />
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="termName" className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-purple" />
               Term Name
@@ -174,6 +173,44 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
               value={schoolData.termName}
               onChange={(e) => onSchoolDataChange({ ...schoolData, termName: e.target.value })}
             />
+          </div>
+        </div>
+
+        {/* Custom Detail Field */}
+        <div className="pt-4 border-t border-border space-y-4">
+          <Label className="flex items-center gap-2 text-base font-medium">
+            <FileText className="h-4 w-4 text-accent" />
+            Custom Detail (Optional)
+          </Label>
+          <p className="text-xs text-muted-foreground">Add any extra information to appear on the report card</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="customText">Detail Text</Label>
+              <Input
+                id="customText"
+                placeholder="e.g., Academic Year 2024-2025, Class: P5A"
+                value={schoolData.customDetail?.text || ''}
+                onChange={(e) => handleCustomDetailChange('text', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Position</Label>
+              <Select 
+                value={schoolData.customDetail?.position || 'topLeft'} 
+                onValueChange={(v) => handleCustomDetailChange('position', v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="topLeft">Top Left</SelectItem>
+                  <SelectItem value="topRight">Top Right</SelectItem>
+                  <SelectItem value="bottomLeft">Bottom Left</SelectItem>
+                  <SelectItem value="bottomRight">Bottom Right</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </CardContent>

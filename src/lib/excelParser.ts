@@ -8,7 +8,22 @@ export interface ParseResult {
   error?: string;
 }
 
-export function parseExcelFile(file: File, mttMax: number, examMax: number, conductMax: number): Promise<ParseResult> {
+interface SubjectColumn {
+  name: string;
+  index: number;
+  maxMarks: number;
+}
+
+/**
+ * New Excel format:
+ * Full names | Mathematics/30 | ENGLISH/100 | SET/50 | Conduct/100
+ * 
+ * For midterm files: Each column is a subject with /MAX at the end indicating max marks
+ * For exam files: Same format
+ * 
+ * The system extracts the subject name (before /) and max marks (after /)
+ */
+export function parseExcelFile(file: File, defaultMttMax: number, defaultExamMax: number, conductMax: number, isMidtermFile: boolean = false): Promise<ParseResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     
@@ -50,22 +65,29 @@ export function parseExcelFile(file: File, mttMax: number, examMax: number, cond
           return;
         }
 
-        // Find conduct column
-        const conductColumnIndex = headers.findIndex(
-          (h) => h && h.toString().toLowerCase().includes('conduct')
-        );
+        // Find conduct column - format: Conduct/MAX
+        let conductColumnIndex = -1;
+        let conductMaxFromFile = conductMax;
         
-        // Detect subjects - Format: Subject_MTT, Subject_EXAM columns
-        // OR just Subject column with marks
+        headers.forEach((h, index) => {
+          if (!h) return;
+          const headerStr = h.toString();
+          const headerLower = headerStr.toLowerCase();
+          
+          if (headerLower.includes('conduct')) {
+            conductColumnIndex = index;
+            // Extract max from conduct column if present
+            if (headerStr.includes('/')) {
+              const parts = headerStr.split('/');
+              const maxVal = parseInt(parts[1], 10);
+              if (!isNaN(maxVal)) conductMaxFromFile = maxVal;
+            }
+          }
+        });
+        
+        // Detect subjects - Format: SubjectName/MAX
+        const subjectColumns: SubjectColumn[] = [];
         const detectedSubjects: string[] = [];
-        const subjectColumns: { 
-          name: string; 
-          mttIndex?: number; 
-          examIndex?: number;
-          singleIndex?: number;
-        }[] = [];
-        
-        // First pass: find all subject patterns
         const processedIndices = new Set<number>();
         processedIndices.add(nameColumnIndex);
         if (conductColumnIndex !== -1) processedIndices.add(conductColumnIndex);
@@ -73,52 +95,44 @@ export function parseExcelFile(file: File, mttMax: number, examMax: number, cond
         headers.forEach((header, index) => {
           if (processedIndices.has(index) || !header) return;
           
-          const headerStr = header.toString();
+          const headerStr = header.toString().trim();
           const headerLower = headerStr.toLowerCase();
           
           // Skip non-subject columns
           if (headerLower.includes('total') || headerLower.includes('percentage') || 
               headerLower.includes('position') || headerLower.includes('rank') ||
               headerLower.includes('grade') || headerLower.includes('remark') ||
-              headerLower.includes('max') || headerLower.includes('conduct')) {
+              headerLower.includes('average') || headerLower.includes('comment')) {
             return;
           }
           
-          // Check for MTT/EXAM pattern in column name
-          if (headerLower.includes('_mtt') || headerLower.includes(' mtt')) {
-            const subjectName = headerStr.replace(/_mtt|_MTT| mtt| MTT/gi, '').trim();
-            // Find corresponding EXAM column
-            const examIndex = headers.findIndex((h, i) => 
-              h && (h.toString().toLowerCase().includes(subjectName.toLowerCase()) && 
-                   (h.toString().toLowerCase().includes('_exam') || h.toString().toLowerCase().includes(' exam')))
-            );
-            
-            if (!detectedSubjects.includes(subjectName)) {
-              detectedSubjects.push(subjectName);
-              subjectColumns.push({
-                name: subjectName,
-                mttIndex: index,
-                examIndex: examIndex !== -1 ? examIndex : undefined,
-              });
-              processedIndices.add(index);
-              if (examIndex !== -1) processedIndices.add(examIndex);
-            }
-          } else if (headerLower.includes('_exam') || headerLower.includes(' exam')) {
-            // Skip - already handled with MTT
-          } else {
-            // Single column subject (marks only)
-            if (!detectedSubjects.includes(headerStr)) {
-              detectedSubjects.push(headerStr);
-              subjectColumns.push({
-                name: headerStr,
-                singleIndex: index,
-              });
-              processedIndices.add(index);
-            }
+          // Parse Subject/MAX format
+          let subjectName = headerStr;
+          let maxMarks = isMidtermFile ? defaultMttMax : defaultExamMax;
+          
+          if (headerStr.includes('/')) {
+            const parts = headerStr.split('/');
+            subjectName = parts[0].trim();
+            const maxVal = parseInt(parts[1], 10);
+            if (!isNaN(maxVal)) maxMarks = maxVal;
+          }
+          
+          // Clean up subject name (remove any trailing numbers or special chars)
+          subjectName = subjectName.replace(/_MTT|_EXAM|_mtt|_exam/gi, '').trim();
+          
+          if (subjectName && !detectedSubjects.includes(subjectName)) {
+            detectedSubjects.push(subjectName);
+            subjectColumns.push({
+              name: subjectName,
+              index,
+              maxMarks,
+            });
+            processedIndices.add(index);
           }
         });
         
-        const totalMax = subjectColumns.length * (mttMax + examMax);
+        // Calculate total max marks
+        const totalMax = subjectColumns.reduce((sum, col) => sum + col.maxMarks, 0);
         const students: ParsedStudent[] = [];
         
         for (let i = 1; i < jsonData.length; i++) {
@@ -127,32 +141,29 @@ export function parseExcelFile(file: File, mttMax: number, examMax: number, cond
           
           if (!fullName || fullName.trim() === '') continue;
           
-          const marks: { subject: string; mtt: number; exam: number; total: number }[] = [];
+          const marks: { subject: string; mtt: number; exam: number; total: number; maxMtt: number; maxExam: number }[] = [];
           let totalMarks = 0;
           
           subjectColumns.forEach((col) => {
-            let mtt = 0;
-            let exam = 0;
+            const value = Number(row[col.index]) || 0;
             
-            if (col.mttIndex !== undefined) {
-              mtt = Number(row[col.mttIndex]) || 0;
-            }
-            if (col.examIndex !== undefined) {
-              exam = Number(row[col.examIndex]) || 0;
-            }
-            if (col.singleIndex !== undefined) {
-              // If single column, treat as total and split proportionally
-              const total = Number(row[col.singleIndex]) || 0;
-              exam = total;
-              mtt = 0;
-            }
+            // If this is a midterm file, marks go to MTT, otherwise to EXAM
+            const mtt = isMidtermFile ? value : 0;
+            const exam = isMidtermFile ? 0 : value;
+            const total = value;
             
-            const total = mtt + exam;
-            marks.push({ subject: col.name, mtt, exam, total });
+            marks.push({ 
+              subject: col.name, 
+              mtt, 
+              exam, 
+              total,
+              maxMtt: isMidtermFile ? col.maxMarks : 0,
+              maxExam: isMidtermFile ? 0 : col.maxMarks,
+            });
             totalMarks += total;
           });
           
-          const conductMarks = conductColumnIndex !== -1 
+          const conductMarksValue = conductColumnIndex !== -1 
             ? Number(row[conductColumnIndex]) || 0 
             : 0;
           
@@ -161,7 +172,7 @@ export function parseExcelFile(file: File, mttMax: number, examMax: number, cond
           students.push({
             fullName: fullName.trim(),
             marks,
-            conductMarks,
+            conductMarks: conductMarksValue,
             totalMarks,
             maxMarks: totalMax,
             percentage,

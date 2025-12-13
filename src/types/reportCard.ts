@@ -1,3 +1,8 @@
+export interface CustomDetail {
+  text: string;
+  position: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+}
+
 export interface SchoolData {
   name: string;
   address: string;
@@ -5,6 +10,7 @@ export interface SchoolData {
   contact: string;
   termName: string;
   logo: string | null;
+  customDetail?: CustomDetail;
 }
 
 export interface Subject {
@@ -18,6 +24,8 @@ export interface SubjectMark {
   mtt: number; // Midterm Test marks
   exam: number; // End of term exam marks
   total: number; // Total out of maxTotal
+  maxMtt: number; // Max marks for MTT this subject
+  maxExam: number; // Max marks for Exam this subject
   rank?: number; // Subject rank among all students
 }
 
@@ -49,6 +57,7 @@ export interface TermSection {
   selected: boolean;
   file: File | null;
   parsedData: ParsedSectionData | null;
+  isMidterm?: boolean; // Whether this section is a midterm test
 }
 
 export interface ParsedSectionData {
@@ -58,7 +67,7 @@ export interface ParsedSectionData {
 
 export interface ParsedStudent {
   fullName: string;
-  marks: { subject: string; mtt: number; exam: number; total: number }[];
+  marks: { subject: string; mtt: number; exam: number; total: number; maxMtt: number; maxExam: number }[];
   conductMarks: number;
   totalMarks: number;
   maxMarks: number;
@@ -66,9 +75,10 @@ export interface ParsedStudent {
 }
 
 export interface MarkSettings {
-  mttMax: number; // Max marks for midterm test per subject
-  examMax: number; // Max marks for exam per subject
+  mttMax: number; // Max marks for midterm test per subject (default)
+  examMax: number; // Max marks for exam per subject (default)
   conductMax: number; // Max marks for conduct
 }
 
 export type ThemeMode = 'light' | 'dark' | 'colorful';
+export type ReportCardStyle = 'colorful' | 'blackWhite';

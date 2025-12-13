@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Student, SchoolData, TermSection, MarkSettings } from '@/types/reportCard';
+import { Student, SchoolData, TermSection, MarkSettings, ReportCardStyle } from '@/types/reportCard';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -10,81 +10,96 @@ interface GeneratePDFOptions {
   selectedSubjects: string[];
   sections: TermSection[];
   markSettings: MarkSettings;
-}
-
-function getGradeColor(percentage: number): [number, number, number] {
-  if (percentage >= 80) return [34, 197, 94];
-  if (percentage >= 60) return [59, 130, 246];
-  if (percentage >= 40) return [245, 158, 11];
-  return [239, 68, 68];
-}
-
-function getGrade(percentage: number): string {
-  if (percentage >= 90) return 'A+';
-  if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B+';
-  if (percentage >= 60) return 'B';
-  if (percentage >= 50) return 'C+';
-  if (percentage >= 40) return 'C';
-  if (percentage >= 30) return 'D';
-  return 'E';
+  hasMidterm: boolean;
+  reportCardStyle: ReportCardStyle;
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, classTeacher, selectedSubjects, sections, markSettings } = options;
+  const { student, school, totalStudents, classTeacher, selectedSubjects, sections, markSettings, hasMidterm, reportCardStyle } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
-  const primaryColor: [number, number, number] = [20, 184, 166];
-  const headerBg: [number, number, number] = [240, 253, 250];
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const isBlackWhite = reportCardStyle === 'blackWhite';
+  
+  // Colors based on style
+  const primaryColor: [number, number, number] = isBlackWhite ? [0, 0, 0] : [20, 184, 166];
+  const headerBg: [number, number, number] = isBlackWhite ? [245, 245, 245] : [240, 253, 250];
+  const textWhite: [number, number, number] = [255, 255, 255];
+  const textBlack: [number, number, number] = [0, 0, 0];
+  
+  let currentY = 0;
+  
+  // Custom Detail - Top positions
+  if (school.customDetail?.text && (school.customDetail.position === 'topLeft' || school.customDetail.position === 'topRight')) {
+    doc.setFontSize(8);
+    doc.setTextColor(...textBlack);
+    const xPos = school.customDetail.position === 'topRight' ? pageWidth - 10 : 10;
+    const align = school.customDetail.position === 'topRight' ? 'right' : 'left';
+    doc.text(school.customDetail.text, xPos, 8, { align: align as 'left' | 'right' });
+    currentY = 10;
+  }
   
   // Header
+  const headerY = currentY;
   doc.setFillColor(...primaryColor);
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  doc.rect(0, headerY, pageWidth, 35, 'F');
   
   if (school.logo) {
     try {
-      doc.addImage(school.logo, 'PNG', pageWidth - 40, 3, 30, 28);
+      doc.addImage(school.logo, 'PNG', pageWidth - 40, headerY + 3, 30, 28);
     } catch (e) {
       console.log('Could not add logo');
     }
   }
   
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(...(isBlackWhite ? textBlack : textWhite));
+  if (isBlackWhite) {
+    doc.setFillColor(245, 245, 245);
+    doc.rect(0, headerY, pageWidth, 35, 'F');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(0, headerY + 35, pageWidth, headerY + 35);
+  }
+  
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(school.name || 'School Name', 10, 14);
+  doc.text(school.name || 'School Name', 10, headerY + 14);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(school.address || 'School Address', 10, 21);
-  doc.text(`Contact: ${school.contact || 'N/A'}`, 10, 27);
+  doc.text(school.address || 'School Address', 10, headerY + 21);
+  doc.text(`Contact: ${school.contact || 'N/A'}`, 10, headerY + 27);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(school.termName || 'Term Report Card', pageWidth / 2, 33, { align: 'center' });
+  doc.text(school.termName || 'Term Report Card', pageWidth / 2, headerY + 33, { align: 'center' });
+  
+  currentY = headerY + 40;
   
   // Student Info
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(...textBlack);
   doc.setFillColor(...headerBg);
-  doc.roundedRect(10, 40, pageWidth - 20, 18, 2, 2, 'F');
+  doc.roundedRect(10, currentY, pageWidth - 20, 18, 2, 2, 'F');
   
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Student Name:', 15, 48);
+  doc.text('Student Name:', 15, currentY + 8);
   doc.setFont('helvetica', 'normal');
-  doc.text(student.fullName, 50, 48);
+  doc.text(student.fullName, 50, currentY + 8);
   
   doc.setFont('helvetica', 'bold');
-  doc.text('Conduct:', 15, 54);
+  doc.text('Conduct:', 15, currentY + 14);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${student.conductMarks} / ${markSettings.conductMax}`, 40, 54);
+  doc.text(`${student.conductMarks} / ${markSettings.conductMax}`, 40, currentY + 14);
   
   doc.setFont('helvetica', 'bold');
-  doc.text('Class Teacher:', pageWidth / 2, 48);
+  doc.text('Class Teacher:', pageWidth / 2, currentY + 8);
   doc.setFont('helvetica', 'normal');
-  doc.text(classTeacher || '________________', pageWidth / 2 + 30, 48);
+  doc.text(classTeacher || '________________', pageWidth / 2 + 30, currentY + 8);
   
-  // Build table headers - matching reference format: SUBJECTS | TEST | EX | TOT (per term) | Rank | Comments
+  currentY += 22;
+  
+  // Build table headers - Dynamic based on hasMidterm
   const selectedSections = sections.filter(s => s.selected && s.parsedData);
   const tableHeaders: string[][] = [
     ['SUBJECTS'],
@@ -92,8 +107,13 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   ];
   
   selectedSections.forEach(section => {
-    tableHeaders[0].push(section.shortName, '', '');
-    tableHeaders[1].push('TEST', 'EX', 'TOT');
+    if (hasMidterm) {
+      tableHeaders[0].push(section.shortName, '', '');
+      tableHeaders[1].push('TEST', 'EX', 'TOT');
+    } else {
+      tableHeaders[0].push(section.shortName, '');
+      tableHeaders[1].push('EX', 'TOT');
+    }
   });
   tableHeaders[0].push('Rank', 'Comments');
   tableHeaders[1].push('', '');
@@ -113,14 +133,22 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       const mark = term.subjects.find(s => s.subject === subjectData.subject);
       const hasMtt = mark && mark.mtt > 0;
       const hasExam = mark && mark.exam > 0;
-      row.push(
-        hasMtt ? mark.mtt : '-', 
-        hasExam ? mark.exam : '-', 
-        mark?.total || '-'
-      );
+      
+      if (hasMidterm) {
+        row.push(
+          hasMtt ? mark.mtt : '-', 
+          hasExam ? mark.exam : '-', 
+          mark?.total || '-'
+        );
+      } else {
+        row.push(
+          hasExam ? mark.exam : '-', 
+          mark?.total || '-'
+        );
+      }
     });
     
-    row.push(subjectData.rank || '-', ''); // Rank and Comments (blank)
+    row.push(subjectData.rank || '-', '');
     tableData.push(row);
   });
   
@@ -129,14 +157,19 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
+    if (hasMidterm) {
+      totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
+    } else {
+      totalRow.push(termExam || '-', term.totalMarks);
+    }
   });
   totalRow.push('', '');
   tableData.push(totalRow);
   
   // Average row
   const avgRow: (string | number)[] = ['Average', `${student.overallPercentage.toFixed(1)}%`];
-  for (let i = 1; i < selectedSections.length * 3 - 1; i++) {
+  const colsPerSection = hasMidterm ? 3 : 2;
+  for (let i = 1; i < selectedSections.length * colsPerSection - 1; i++) {
     if (i === 1) avgRow.push('Rank');
     else avgRow.push('');
   }
@@ -146,7 +179,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // Calculate column widths dynamically
   const numTerms = selectedSections.length;
   const subjectColWidth = 35;
-  const termColWidth = 10;
+  const termColWidth = hasMidterm ? 10 : 12;
   const rankColWidth = 12;
   const commentsColWidth = 25;
   
@@ -154,19 +187,31 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     0: { cellWidth: subjectColWidth, halign: 'left' },
   };
   
-  for (let i = 1; i <= numTerms * 3; i++) {
+  const totalCols = numTerms * colsPerSection;
+  for (let i = 1; i <= totalCols; i++) {
     columnStyles[i] = { cellWidth: termColWidth, halign: 'center' };
   }
-  columnStyles[numTerms * 3 + 1] = { cellWidth: rankColWidth, halign: 'center' };
-  columnStyles[numTerms * 3 + 2] = { cellWidth: commentsColWidth, halign: 'left' };
+  columnStyles[totalCols + 1] = { cellWidth: rankColWidth, halign: 'center' };
+  columnStyles[totalCols + 2] = { cellWidth: commentsColWidth, halign: 'left' };
   
   autoTable(doc, {
-    startY: 62,
+    startY: currentY,
     head: [tableHeaders[0], tableHeaders[1]],
     body: tableData,
     theme: 'grid',
-    styles: { fontSize: 7, cellPadding: 1.5, lineColor: [0, 0, 0], lineWidth: 0.2 },
-    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center', fontSize: 7 },
+    styles: { 
+      fontSize: 7, 
+      cellPadding: 1.5, 
+      lineColor: [0, 0, 0], 
+      lineWidth: 0.2 
+    },
+    headStyles: { 
+      fillColor: isBlackWhite ? [220, 220, 220] : [240, 240, 240], 
+      textColor: [0, 0, 0], 
+      fontStyle: 'bold', 
+      halign: 'center', 
+      fontSize: 7 
+    },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
     didParseCell: (data) => {
@@ -177,18 +222,17 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       // Style average row
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = [248, 248, 248];
+        data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];
       }
     },
   });
   
   const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   
-  // Observations and Signatures box - matching reference layout
+  // Observations and Signatures box
   const boxY = finalY + 5;
   const boxHeight = 35;
   
-  // Draw observation/signature box
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
   doc.rect(10, boxY, pageWidth - 20, boxHeight);
@@ -208,14 +252,15 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
-  
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 12;
-  doc.setFillColor(...primaryColor);
-  doc.rect(0, footerY - 3, pageWidth, 15, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(7);
-  doc.text('Generated by EDUBEL | Made with ❤️ by Belco | nzirorerabelico@gmail.com', pageWidth / 2, footerY + 3, { align: 'center' });
+  // Custom Detail - Bottom positions
+  if (school.customDetail?.text && (school.customDetail.position === 'bottomLeft' || school.customDetail.position === 'bottomRight')) {
+    const bottomY = boxY + boxHeight + 8;
+    doc.setFontSize(8);
+    doc.setTextColor(...textBlack);
+    const xPos = school.customDetail.position === 'bottomRight' ? pageWidth - 10 : 10;
+    const align = school.customDetail.position === 'bottomRight' ? 'right' : 'left';
+    doc.text(school.customDetail.text, xPos, bottomY, { align: align as 'left' | 'right' });
+  }
   
   return doc;
 }

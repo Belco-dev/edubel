@@ -7,14 +7,14 @@ import { TermSelector } from '@/components/TermSelector';
 import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { mergeStudentsFromSections } from '@/lib/studentMerger';
-import { SchoolData, Student, ThemeMode, TermSection, MarkSettings } from '@/types/reportCard';
+import { SchoolData, Student, ThemeMode, TermSection, MarkSettings, ReportCardStyle } from '@/types/reportCard';
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList } from 'lucide-react';
 
 const defaultSections: TermSection[] = [
-  { id: 'midterm', name: 'Midterm Test', shortName: 'MTT', selected: false, file: null, parsedData: null },
-  { id: 'term1', name: 'End of Term 1', shortName: 'T1', selected: false, file: null, parsedData: null },
-  { id: 'term2', name: 'End of Term 2', shortName: 'T2', selected: false, file: null, parsedData: null },
-  { id: 'term3', name: 'End of Term 3', shortName: 'T3', selected: false, file: null, parsedData: null },
+  { id: 'midterm', name: 'Midterm Test', shortName: 'MTT', selected: false, file: null, parsedData: null, isMidterm: true },
+  { id: 'term1', name: 'End of Term 1', shortName: 'T1', selected: false, file: null, parsedData: null, isMidterm: false },
+  { id: 'term2', name: 'End of Term 2', shortName: 'T2', selected: false, file: null, parsedData: null, isMidterm: false },
+  { id: 'term3', name: 'End of Term 3', shortName: 'T3', selected: false, file: null, parsedData: null, isMidterm: false },
 ];
 
 const defaultMarkSettings: MarkSettings = {
@@ -37,6 +37,7 @@ const Index = () => {
   const [sections, setSections] = useState<TermSection[]>(defaultSections);
   const [markSettings, setMarkSettings] = useState<MarkSettings>(defaultMarkSettings);
   const [students, setStudents] = useState<Student[]>([]);
+  const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
 
   useEffect(() => {
     const root = document.documentElement;
@@ -65,6 +66,9 @@ const Index = () => {
       setSelectedSubjects(Array.from(allSubjects));
     }
   }, [sections, markSettings]);
+
+  // Check if midterm is included
+  const hasMidterm = sections.some(s => s.selected && s.isMidterm);
 
   const steps = [
     { icon: BookOpen, title: 'Setup School', description: 'Enter school info' },
@@ -95,7 +99,7 @@ const Index = () => {
                 <span className="gradient-text">Report Cards</span>
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 animate-fade-up px-4" style={{ animationDelay: '0.2s' }}>
-                Multi-term report cards with MTT, Exam & Total columns. Works on phone, tablet & computer!
+                Multi-term report cards with TEST, EXAM & TOTAL columns. Works on phone, tablet & computer!
               </p>
               
               {/* Steps */}
@@ -163,6 +167,9 @@ const Index = () => {
                 selectedSubjects={selectedSubjects}
                 sections={sections}
                 markSettings={markSettings}
+                hasMidterm={hasMidterm}
+                reportCardStyle={reportCardStyle}
+                onStyleChange={setReportCardStyle}
               />
             </div>
           </div>
@@ -179,7 +186,7 @@ const Index = () => {
                 {[
                   {
                     title: 'Multi-Term Support',
-                    description: 'Generate reports with MTT, Exam, and Total columns for multiple terms.',
+                    description: 'Generate reports with TEST, EXAM, and TOTAL columns for multiple terms.',
                     color: 'bg-green/20 text-green',
                   },
                   {

@@ -26,11 +26,21 @@ export function mergeStudentsFromSections(sections: TermSection[], settings: Mar
       studentName = studentData.fullName;
       conductMarks = studentData.conductMarks;
       
+      // Convert ParsedStudent marks to SubjectMark format
+      const subjects = studentData.marks.map(m => ({
+        subject: m.subject,
+        mtt: m.mtt,
+        exam: m.exam,
+        total: m.total,
+        maxMtt: m.maxMtt,
+        maxExam: m.maxExam,
+      }));
+      
       const termData: TermData = {
         termId: section.id,
         termName: section.name,
         shortName: section.shortName,
-        subjects: studentData.marks,
+        subjects,
         totalMarks: studentData.totalMarks,
         maxMarks: studentData.maxMarks,
         percentage: studentData.percentage,
