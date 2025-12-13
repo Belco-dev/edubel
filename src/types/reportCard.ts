@@ -43,6 +43,7 @@ export interface Student {
   id: string;
   fullName: string;
   conductMarks: number;
+  conductMax: number;
   terms: TermData[];
   grandTotal: number;
   grandMax: number;
@@ -69,6 +70,7 @@ export interface ParsedStudent {
   fullName: string;
   marks: { subject: string; mtt: number; exam: number; total: number; maxMtt: number; maxExam: number }[];
   conductMarks: number;
+  conductMax: number;
   totalMarks: number;
   maxMarks: number;
   percentage: number;

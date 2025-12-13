@@ -7,7 +7,7 @@ import { TermSelector } from '@/components/TermSelector';
 import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { mergeStudentsFromSections } from '@/lib/studentMerger';
-import { SchoolData, Student, ThemeMode, TermSection, MarkSettings, ReportCardStyle } from '@/types/reportCard';
+import { SchoolData, Student, ThemeMode, TermSection, ReportCardStyle } from '@/types/reportCard';
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList } from 'lucide-react';
 
 const defaultSections: TermSection[] = [
@@ -16,12 +16,6 @@ const defaultSections: TermSection[] = [
   { id: 'term2', name: 'End of Term 2', shortName: 'T2', selected: false, file: null, parsedData: null, isMidterm: false },
   { id: 'term3', name: 'End of Term 3', shortName: 'T3', selected: false, file: null, parsedData: null, isMidterm: false },
 ];
-
-const defaultMarkSettings: MarkSettings = {
-  mttMax: 30,
-  examMax: 70,
-  conductMax: 100,
-};
 
 const Index = () => {
   const [theme, setTheme] = useState<ThemeMode>('light');
@@ -35,7 +29,6 @@ const Index = () => {
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [sections, setSections] = useState<TermSection[]>(defaultSections);
-  const [markSettings, setMarkSettings] = useState<MarkSettings>(defaultMarkSettings);
   const [students, setStudents] = useState<Student[]>([]);
   const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
 
@@ -52,7 +45,7 @@ const Index = () => {
 
   // Merge students when sections are updated
   useEffect(() => {
-    const merged = mergeStudentsFromSections(sections, markSettings);
+    const merged = mergeStudentsFromSections(sections);
     setStudents(merged);
     
     // Auto-select detected subjects
@@ -65,7 +58,7 @@ const Index = () => {
     if (allSubjects.size > 0 && selectedSubjects.length === 0) {
       setSelectedSubjects(Array.from(allSubjects));
     }
-  }, [sections, markSettings]);
+  }, [sections]);
 
   // Check if midterm is included
   const hasMidterm = sections.some(s => s.selected && s.isMidterm);
@@ -138,8 +131,6 @@ const Index = () => {
                 <TermSelector 
                   sections={sections}
                   onSectionsChange={setSections}
-                  markSettings={markSettings}
-                  onMarkSettingsChange={setMarkSettings}
                 />
               </div>
               
@@ -147,7 +138,6 @@ const Index = () => {
                 <MultiFileUpload 
                   sections={sections}
                   onSectionsUpdate={setSections}
-                  markSettings={markSettings}
                 />
               </div>
               
@@ -166,7 +156,6 @@ const Index = () => {
                 school={schoolData}
                 selectedSubjects={selectedSubjects}
                 sections={sections}
-                markSettings={markSettings}
                 hasMidterm={hasMidterm}
                 reportCardStyle={reportCardStyle}
                 onStyleChange={setReportCardStyle}

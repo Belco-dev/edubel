@@ -1,6 +1,6 @@
-import { Student, TermSection, TermData, MarkSettings } from '@/types/reportCard';
+import { Student, TermSection, TermData } from '@/types/reportCard';
 
-export function mergeStudentsFromSections(sections: TermSection[], settings: MarkSettings): Student[] {
+export function mergeStudentsFromSections(sections: TermSection[]): Student[] {
   const uploadedSections = sections.filter(s => s.selected && s.parsedData && s.parsedData.students.length > 0);
   
   if (uploadedSections.length === 0) return [];
@@ -17,6 +17,7 @@ export function mergeStudentsFromSections(sections: TermSection[], settings: Mar
     let grandTotal = 0;
     let grandMax = 0;
     let conductMarks = 0;
+    let conductMax = 100;
     let studentName = '';
     
     uploadedSections.forEach(section => {
@@ -25,6 +26,7 @@ export function mergeStudentsFromSections(sections: TermSection[], settings: Mar
       
       studentName = studentData.fullName;
       conductMarks = studentData.conductMarks;
+      conductMax = studentData.conductMax;
       
       // Convert ParsedStudent marks to SubjectMark format
       const subjects = studentData.marks.map(m => ({
@@ -57,6 +59,7 @@ export function mergeStudentsFromSections(sections: TermSection[], settings: Mar
       id: `student-${i}`,
       fullName: studentName,
       conductMarks,
+      conductMax,
       terms,
       grandTotal,
       grandMax,

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Loader2, X, Info } from 'lucide-react';
 import { parseExcelFile } from '@/lib/excelParser';
-import { TermSection, MarkSettings } from '@/types/reportCard';
+import { TermSection } from '@/types/reportCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 interface MultiFileUploadProps {
   sections: TermSection[];
   onSectionsUpdate: (sections: TermSection[]) => void;
-  markSettings: MarkSettings;
 }
 
 const sectionColors: Record<string, string> = {
@@ -21,7 +20,7 @@ const sectionColors: Record<string, string> = {
   'term3': 'bg-purple/20 border-purple/30',
 };
 
-export function MultiFileUpload({ sections, onSectionsUpdate, markSettings }: MultiFileUploadProps) {
+export function MultiFileUpload({ sections, onSectionsUpdate }: MultiFileUploadProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showFormat, setShowFormat] = useState(false);
@@ -38,11 +37,10 @@ export function MultiFileUpload({ sections, onSectionsUpdate, markSettings }: Mu
     setLoading(sectionId);
     setErrors(prev => { const n = { ...prev }; delete n[sectionId]; return n; });
 
-    // Determine if this is a midterm section
     const section = sections.find(s => s.id === sectionId);
     const isMidterm = section?.isMidterm || false;
 
-    const parseResult = await parseExcelFile(file, markSettings.mttMax, markSettings.examMax, markSettings.conductMax, isMidterm);
+    const parseResult = await parseExcelFile(file, isMidterm);
     
     if (parseResult.success) {
       onSectionsUpdate(

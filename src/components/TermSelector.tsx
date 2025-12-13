@@ -1,16 +1,12 @@
 import { ClipboardList, Check } from 'lucide-react';
-import { TermSection, MarkSettings } from '@/types/reportCard';
+import { TermSection } from '@/types/reportCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 
 interface TermSelectorProps {
   sections: TermSection[];
   onSectionsChange: (sections: TermSection[]) => void;
-  markSettings: MarkSettings;
-  onMarkSettingsChange: (settings: MarkSettings) => void;
 }
 
 const sectionColors: Record<string, string> = {
@@ -20,7 +16,7 @@ const sectionColors: Record<string, string> = {
   'term3': 'bg-purple/20 text-purple border-purple/30',
 };
 
-export function TermSelector({ sections, onSectionsChange, markSettings, onMarkSettingsChange }: TermSelectorProps) {
+export function TermSelector({ sections, onSectionsChange }: TermSelectorProps) {
   const toggleSection = (sectionId: string) => {
     onSectionsChange(
       sections.map(s => 
@@ -41,7 +37,7 @@ export function TermSelector({ sections, onSectionsChange, markSettings, onMarkS
               Report Card Sections
             </CardTitle>
             <CardDescription className="text-primary-foreground/80">
-              Choose sections and set maximum marks
+              Choose terms/tests to include on report cards
             </CardDescription>
           </div>
           <Badge className="bg-background/20 text-primary-foreground">
@@ -49,99 +45,50 @@ export function TermSelector({ sections, onSectionsChange, markSettings, onMarkS
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="p-4 sm:p-6 space-y-6">
-        {/* Maximum Marks Settings */}
-        <div className="bg-muted/50 p-4 rounded-xl space-y-4">
-          <h4 className="font-medium text-sm">Maximum Marks Settings</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="mttMax" className="text-xs">MTT Max (per subject)</Label>
-              <Input
-                id="mttMax"
-                type="number"
-                min={0}
-                max={100}
-                value={markSettings.mttMax}
-                onChange={(e) => onMarkSettingsChange({ ...markSettings, mttMax: Number(e.target.value) || 0 })}
-                className="h-9"
+      <CardContent className="p-4 sm:p-6">
+        <p className="text-sm text-muted-foreground mb-4">
+          Select the terms/tests to include. Maximum marks are extracted from your Excel column headers (e.g., Mathematics/30).
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {sections.map((section) => (
+            <div
+              key={section.id}
+              className={`relative flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                section.selected 
+                  ? `${sectionColors[section.id]} border-current` 
+                  : 'border-border hover:border-primary/30 hover:bg-muted/50'
+              }`}
+              onClick={() => toggleSection(section.id)}
+            >
+              <Checkbox
+                id={section.id}
+                checked={section.selected}
+                onCheckedChange={() => toggleSection(section.id)}
+                className="pointer-events-none"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="examMax" className="text-xs">Exam Max (per subject)</Label>
-              <Input
-                id="examMax"
-                type="number"
-                min={0}
-                max={100}
-                value={markSettings.examMax}
-                onChange={(e) => onMarkSettingsChange({ ...markSettings, examMax: Number(e.target.value) || 0 })}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="conductMax" className="text-xs">Conduct Max</Label>
-              <Input
-                id="conductMax"
-                type="number"
-                min={0}
-                max={100}
-                value={markSettings.conductMax}
-                onChange={(e) => onMarkSettingsChange({ ...markSettings, conductMax: Number(e.target.value) || 0 })}
-                className="h-9"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Total per subject = MTT ({markSettings.mttMax}) + Exam ({markSettings.examMax}) = {markSettings.mttMax + markSettings.examMax}
-          </p>
-        </div>
-
-        {/* Section Selection */}
-        <div>
-          <p className="text-sm text-muted-foreground mb-4">
-            Select the terms/tests to include. Upload marks for each.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {sections.map((section) => (
-              <div
-                key={section.id}
-                className={`relative flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                  section.selected 
-                    ? `${sectionColors[section.id]} border-current` 
-                    : 'border-border hover:border-primary/30 hover:bg-muted/50'
-                }`}
-                onClick={() => toggleSection(section.id)}
-              >
-                <Checkbox
-                  id={section.id}
-                  checked={section.selected}
-                  onCheckedChange={() => toggleSection(section.id)}
-                  className="pointer-events-none"
-                />
-                <div className="flex-1">
-                  <label 
-                    htmlFor={section.id}
-                    className="font-medium cursor-pointer block text-sm sm:text-base"
-                  >
-                    {section.name}
-                  </label>
-                  <span className="text-xs text-muted-foreground">
-                    {section.shortName}
-                  </span>
-                </div>
-                {section.selected && section.parsedData && (
-                  <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                    <Check className="h-3 w-3 mr-1" />
-                    Uploaded
-                  </Badge>
-                )}
+              <div className="flex-1">
+                <label 
+                  htmlFor={section.id}
+                  className="font-medium cursor-pointer block text-sm sm:text-base"
+                >
+                  {section.name}
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {section.shortName}
+                </span>
               </div>
-            ))}
-          </div>
+              {section.selected && section.parsedData && (
+                <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
+                  <Check className="h-3 w-3 mr-1" />
+                  Uploaded
+                </Badge>
+              )}
+            </div>
+          ))}
         </div>
         
         {selectedCount === 0 && (
-          <p className="text-sm text-destructive">
+          <p className="text-sm text-destructive mt-4">
             Please select at least one section.
           </p>
         )}
