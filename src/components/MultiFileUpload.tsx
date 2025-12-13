@@ -38,7 +38,11 @@ export function MultiFileUpload({ sections, onSectionsUpdate, markSettings }: Mu
     setLoading(sectionId);
     setErrors(prev => { const n = { ...prev }; delete n[sectionId]; return n; });
 
-    const parseResult = await parseExcelFile(file, markSettings.mttMax, markSettings.examMax, markSettings.conductMax);
+    // Determine if this is a midterm section
+    const section = sections.find(s => s.id === sectionId);
+    const isMidterm = section?.isMidterm || false;
+
+    const parseResult = await parseExcelFile(file, markSettings.mttMax, markSettings.examMax, markSettings.conductMax, isMidterm);
     
     if (parseResult.success) {
       onSectionsUpdate(
@@ -98,41 +102,36 @@ export function MultiFileUpload({ sections, onSectionsUpdate, markSettings }: Mu
                 <table className="text-xs w-full border-collapse">
                   <thead>
                     <tr className="border-b border-border">
-                      <th className="text-left p-2 font-semibold bg-primary/10">Student Name</th>
-                      <th className="text-left p-2 font-semibold bg-yellow/10">Conduct</th>
-                      <th className="text-left p-2 font-semibold bg-blue/10">Math_MTT</th>
-                      <th className="text-left p-2 font-semibold bg-blue/10">Math_EXAM</th>
-                      <th className="text-left p-2 font-semibold bg-green/10">English_MTT</th>
-                      <th className="text-left p-2 font-semibold bg-green/10">English_EXAM</th>
-                      <th className="text-left p-2 font-semibold">...</th>
+                      <th className="text-left p-2 font-semibold bg-primary/10">Full names</th>
+                      <th className="text-left p-2 font-semibold bg-blue/10">Mathematics/30</th>
+                      <th className="text-left p-2 font-semibold bg-green/10">ENGLISH/100</th>
+                      <th className="text-left p-2 font-semibold bg-purple/10">Science/50</th>
+                      <th className="text-left p-2 font-semibold bg-yellow/10">Conduct/100</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="text-muted-foreground">
                       <td className="p-2 border-b">John Doe</td>
-                      <td className="p-2 border-b">{markSettings.conductMax - 5}</td>
-                      <td className="p-2 border-b">{markSettings.mttMax - 5}</td>
-                      <td className="p-2 border-b">{markSettings.examMax - 10}</td>
-                      <td className="p-2 border-b">{markSettings.mttMax - 3}</td>
-                      <td className="p-2 border-b">{markSettings.examMax - 8}</td>
-                      <td className="p-2 border-b">...</td>
+                      <td className="p-2 border-b">25</td>
+                      <td className="p-2 border-b">85</td>
+                      <td className="p-2 border-b">40</td>
+                      <td className="p-2 border-b">95</td>
                     </tr>
                     <tr className="text-muted-foreground">
                       <td className="p-2">Jane Smith</td>
-                      <td className="p-2">{markSettings.conductMax}</td>
-                      <td className="p-2">{markSettings.mttMax}</td>
-                      <td className="p-2">{markSettings.examMax - 5}</td>
-                      <td className="p-2">{markSettings.mttMax - 2}</td>
-                      <td className="p-2">{markSettings.examMax}</td>
-                      <td className="p-2">...</td>
+                      <td className="p-2">28</td>
+                      <td className="p-2">92</td>
+                      <td className="p-2">45</td>
+                      <td className="p-2">100</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>Column naming:</strong> Use <code>SubjectName_MTT</code> and <code>SubjectName_EXAM</code></p>
-                <p><strong>Example:</strong> Math_MTT, Math_EXAM, English_MTT, English_EXAM, Science_MTT, Science_EXAM</p>
-                <p><strong>Maximum marks:</strong> MTT = {markSettings.mttMax}, EXAM = {markSettings.examMax}, Conduct = {markSettings.conductMax}</p>
+                <p><strong>Format:</strong> <code>SubjectName/MAX</code> where MAX is the maximum marks for that subject</p>
+                <p><strong>Example:</strong> Mathematics/30, ENGLISH/100, Science/50</p>
+                <p><strong>Note:</strong> The system reads MAX from column titles. Subject name is displayed without /MAX.</p>
+                <p><strong>Conduct:</strong> Optional column <code>Conduct/MAX</code></p>
                 <p><strong>Important:</strong> All files must have students in the same order!</p>
               </div>
             </div>
@@ -145,6 +144,8 @@ export function MultiFileUpload({ sections, onSectionsUpdate, markSettings }: Mu
             <div className="p-3 border-b border-border/30 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-sm sm:text-base">{section.name}</span>
+                {section.isMidterm && <Badge variant="outline" className="text-xs">TEST</Badge>}
+                {!section.isMidterm && <Badge variant="outline" className="text-xs">EXAM</Badge>}
                 {section.parsedData && (
                   <Badge variant="secondary" className="text-xs">
                     <CheckCircle className="h-3 w-3 mr-1 text-green" />
