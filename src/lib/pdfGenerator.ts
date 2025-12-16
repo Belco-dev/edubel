@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Student, SchoolData, TermSection, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -8,17 +8,15 @@ interface GeneratePDFOptions {
   totalStudents: number;
   classTeacher: string;
   selectedSubjects: string[];
-  sections: TermSection[];
-  hasMidterm: boolean;
+  terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, classTeacher, selectedSubjects, sections, hasMidterm, reportCardStyle } = options;
+  const { student, school, totalStudents, classTeacher, selectedSubjects, terms, reportCardStyle } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
   const isBlackWhite = reportCardStyle === 'blackWhite';
   
   // Colors based on style
@@ -71,7 +69,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text(`Contact: ${school.contact || 'N/A'}`, 10, headerY + 27);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(school.termName || 'Term Report Card', pageWidth / 2, headerY + 33, { align: 'center' });
+  const termDisplay = school.className ? `${school.className} - ${school.termName || 'Term Report Card'}` : (school.termName || 'Term Report Card');
+  doc.text(termDisplay, pageWidth / 2, headerY + 33, { align: 'center' });
   
   currentY = headerY + 40;
   
@@ -98,24 +97,13 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   currentY += 22;
   
-  // Build table headers - Dynamic based on hasMidterm
-  const selectedSections = sections.filter(s => s.selected && s.parsedData);
-  const tableHeaders: string[][] = [
-    ['SUBJECTS'],
-    [''],
-  ];
+  // Build table headers - New format with MAX columns first
+  const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   
-  selectedSections.forEach(section => {
-    if (hasMidterm) {
-      tableHeaders[0].push(section.shortName, '', '');
-      tableHeaders[1].push('TEST', 'EX', 'TOT');
-    } else {
-      tableHeaders[0].push(section.shortName, '');
-      tableHeaders[1].push('EX', 'TOT');
-    }
-  });
-  tableHeaders[0].push('Rank', 'Comments');
-  tableHeaders[1].push('', '');
+  const tableHeaders: string[][] = [
+    ['SUBJECTS', 'MAX', '', '', ...selectedTerms.flatMap(t => [t.shortName, '', '']), 'Rank', 'Comments'],
+    ['', 'TEST', 'EX', 'TOT', ...selectedTerms.flatMap(() => ['TEST', 'EX', 'TOT']), '', ''],
+  ];
   
   // Build table data
   const allSubjects = student.terms[0]?.subjects || [];
@@ -126,25 +114,20 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const tableData: (string | number)[][] = [];
   
   filteredSubjects.forEach((subjectData) => {
-    const row: (string | number)[] = [subjectData.subject];
+    const row: (string | number)[] = [
+      subjectData.subject,
+      subjectData.maxMtt || '-',
+      subjectData.maxExam || '-',
+      subjectData.maxTotal || '-',
+    ];
     
     student.terms.forEach(term => {
       const mark = term.subjects.find(s => s.subject === subjectData.subject);
-      const hasMtt = mark && mark.mtt > 0;
-      const hasExam = mark && mark.exam > 0;
-      
-      if (hasMidterm) {
-        row.push(
-          hasMtt ? mark.mtt : '-', 
-          hasExam ? mark.exam : '-', 
-          mark?.total || '-'
-        );
-      } else {
-        row.push(
-          hasExam ? mark.exam : '-', 
-          mark?.total || '-'
-        );
-      }
+      row.push(
+        mark && mark.mtt > 0 ? mark.mtt : '-',
+        mark && mark.exam > 0 ? mark.exam : '-',
+        mark?.total || '-'
+      );
     });
     
     row.push(subjectData.rank || '-', '');
@@ -152,46 +135,52 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   });
   
   // Total row
-  const totalRow: (string | number)[] = ['Total'];
+  const totalRow: (string | number)[] = [
+    'Total',
+    filteredSubjects.reduce((sum, s) => sum + (s.maxMtt || 0), 0) || '-',
+    filteredSubjects.reduce((sum, s) => sum + (s.maxExam || 0), 0) || '-',
+    filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0) || '-',
+  ];
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    if (hasMidterm) {
-      totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
-    } else {
-      totalRow.push(termExam || '-', term.totalMarks);
-    }
+    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
   });
   totalRow.push('', '');
   tableData.push(totalRow);
   
   // Average row
-  const avgRow: (string | number)[] = ['Average', `${student.overallPercentage.toFixed(1)}%`];
-  const colsPerSection = hasMidterm ? 3 : 2;
-  for (let i = 1; i < selectedSections.length * colsPerSection - 1; i++) {
-    if (i === 1) avgRow.push('Rank');
-    else avgRow.push('');
-  }
+  const avgRow: (string | number)[] = ['Average', `${student.overallPercentage.toFixed(1)}%`, '', ''];
+  selectedTerms.forEach((_, idx) => {
+    if (idx === 0) avgRow.push('Rank', '', '');
+    else avgRow.push('', '', '');
+  });
   avgRow.push(student.position.toString(), '');
   tableData.push(avgRow);
   
   // Calculate column widths dynamically
-  const numTerms = selectedSections.length;
-  const subjectColWidth = 35;
-  const termColWidth = hasMidterm ? 10 : 12;
-  const rankColWidth = 12;
-  const commentsColWidth = 25;
+  const numTerms = selectedTerms.length;
+  const subjectColWidth = 28;
+  const maxColWidth = 8;
+  const termColWidth = 8;
+  const rankColWidth = 10;
+  const commentsColWidth = 18;
   
   const columnStyles: Record<number, { cellWidth: number; halign?: 'left' | 'center' | 'right' }> = {
     0: { cellWidth: subjectColWidth, halign: 'left' },
+    1: { cellWidth: maxColWidth, halign: 'center' },
+    2: { cellWidth: maxColWidth, halign: 'center' },
+    3: { cellWidth: maxColWidth, halign: 'center' },
   };
   
-  const totalCols = numTerms * colsPerSection;
-  for (let i = 1; i <= totalCols; i++) {
-    columnStyles[i] = { cellWidth: termColWidth, halign: 'center' };
+  let colIdx = 4;
+  for (let i = 0; i < numTerms; i++) {
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
   }
-  columnStyles[totalCols + 1] = { cellWidth: rankColWidth, halign: 'center' };
-  columnStyles[totalCols + 2] = { cellWidth: commentsColWidth, halign: 'left' };
+  columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' };
+  columnStyles[colIdx] = { cellWidth: commentsColWidth, halign: 'left' };
   
   autoTable(doc, {
     startY: currentY,
@@ -199,8 +188,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     body: tableData,
     theme: 'grid',
     styles: { 
-      fontSize: 7, 
-      cellPadding: 1.5, 
+      fontSize: 6, 
+      cellPadding: 1, 
       lineColor: [0, 0, 0], 
       lineWidth: 0.2 
     },
@@ -209,7 +198,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       textColor: [0, 0, 0], 
       fontStyle: 'bold', 
       halign: 'center', 
-      fontSize: 7 
+      fontSize: 6 
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,

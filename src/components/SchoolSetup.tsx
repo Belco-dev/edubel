@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Building2, User, Phone, Calendar, Upload, ImageIcon, X, FileText } from 'lucide-react';
+import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap } from 'lucide-react';
 import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -163,6 +163,19 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="className" className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-blue" />
+              Class Name
+            </Label>
+            <Input
+              id="className"
+              placeholder="e.g., P5A, S3 Science"
+              value={schoolData.className}
+              onChange={(e) => onSchoolDataChange({ ...schoolData, className: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="termName" className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-purple" />
               Term Name
@@ -189,7 +202,7 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
               <Label htmlFor="customText">Detail Text</Label>
               <Input
                 id="customText"
-                placeholder="e.g., Academic Year 2024-2025, Class: P5A"
+                placeholder="e.g., Academic Year 2024-2025"
                 value={schoolData.customDetail?.text || ''}
                 onChange={(e) => handleCustomDetailChange('text', e.target.value)}
               />
