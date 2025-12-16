@@ -1,31 +1,30 @@
 import { ClipboardList, Check } from 'lucide-react';
-import { TermSection } from '@/types/reportCard';
+import { TermUpload } from '@/types/reportCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 
 interface TermSelectorProps {
-  sections: TermSection[];
-  onSectionsChange: (sections: TermSection[]) => void;
+  terms: TermUpload[];
+  onTermsChange: (terms: TermUpload[]) => void;
 }
 
-const sectionColors: Record<string, string> = {
-  'midterm': 'bg-yellow/20 text-yellow border-yellow/30',
+const termColors: Record<string, string> = {
   'term1': 'bg-green/20 text-green border-green/30',
   'term2': 'bg-blue/20 text-blue border-blue/30',
   'term3': 'bg-purple/20 text-purple border-purple/30',
 };
 
-export function TermSelector({ sections, onSectionsChange }: TermSelectorProps) {
-  const toggleSection = (sectionId: string) => {
-    onSectionsChange(
-      sections.map(s => 
-        s.id === sectionId ? { ...s, selected: !s.selected } : s
+export function TermSelector({ terms, onTermsChange }: TermSelectorProps) {
+  const toggleTerm = (termId: string) => {
+    onTermsChange(
+      terms.map(t => 
+        t.id === termId ? { ...t, selected: !t.selected } : t
       )
     );
   };
 
-  const selectedCount = sections.filter(s => s.selected).length;
+  const selectedCount = terms.filter(t => t.selected).length;
 
   return (
     <Card className="card-hover overflow-hidden">
@@ -34,10 +33,10 @@ export function TermSelector({ sections, onSectionsChange }: TermSelectorProps) 
           <div>
             <CardTitle className="flex items-center gap-2 font-display">
               <ClipboardList className="h-5 w-5" />
-              Report Card Sections
+              Select Terms
             </CardTitle>
             <CardDescription className="text-primary-foreground/80">
-              Choose terms/tests to include on report cards
+              Choose which terms to include on report cards
             </CardDescription>
           </div>
           <Badge className="bg-background/20 text-primary-foreground">
@@ -47,49 +46,54 @@ export function TermSelector({ sections, onSectionsChange }: TermSelectorProps) 
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         <p className="text-sm text-muted-foreground mb-4">
-          Select the terms/tests to include. Maximum marks are extracted from your Excel column headers (e.g., Mathematics/30).
+          For each selected term, you'll upload TEST marks and EXAM marks separately.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {sections.map((section) => (
-            <div
-              key={section.id}
-              className={`relative flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                section.selected 
-                  ? `${sectionColors[section.id]} border-current` 
-                  : 'border-border hover:border-primary/30 hover:bg-muted/50'
-              }`}
-              onClick={() => toggleSection(section.id)}
-            >
-              <Checkbox
-                id={section.id}
-                checked={section.selected}
-                onCheckedChange={() => toggleSection(section.id)}
-                className="pointer-events-none"
-              />
-              <div className="flex-1">
-                <label 
-                  htmlFor={section.id}
-                  className="font-medium cursor-pointer block text-sm sm:text-base"
-                >
-                  {section.name}
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {section.shortName}
-                </span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {terms.map((term) => {
+            const hasTestData = !!term.testParsedData;
+            const hasExamData = !!term.examParsedData;
+            
+            return (
+              <div
+                key={term.id}
+                className={`relative flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                  term.selected 
+                    ? `${termColors[term.id]} border-current` 
+                    : 'border-border hover:border-primary/30 hover:bg-muted/50'
+                }`}
+                onClick={() => toggleTerm(term.id)}
+              >
+                <Checkbox
+                  id={term.id}
+                  checked={term.selected}
+                  onCheckedChange={() => toggleTerm(term.id)}
+                  className="pointer-events-none"
+                />
+                <div className="flex-1">
+                  <label 
+                    htmlFor={term.id}
+                    className="font-medium cursor-pointer block text-sm sm:text-base"
+                  >
+                    {term.name}
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {term.shortName}
+                  </span>
+                </div>
+                {term.selected && (hasTestData || hasExamData) && (
+                  <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
+                    <Check className="h-3 w-3 mr-1" />
+                    {hasTestData && hasExamData ? 'Both' : hasTestData ? 'Test' : 'Exam'}
+                  </Badge>
+                )}
               </div>
-              {section.selected && section.parsedData && (
-                <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                  <Check className="h-3 w-3 mr-1" />
-                  Uploaded
-                </Badge>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         {selectedCount === 0 && (
           <p className="text-sm text-destructive mt-4">
-            Please select at least one section.
+            Please select at least one term.
           </p>
         )}
       </CardContent>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette } from 'lucide-react';
-import { Student, SchoolData, TermSection, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,7 @@ interface ReportCardPreviewProps {
   students: Student[];
   school: SchoolData;
   selectedSubjects: string[];
-  sections: TermSection[];
-  hasMidterm: boolean;
+  terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
 }
@@ -31,8 +30,7 @@ export function ReportCardPreview({
   students, 
   school, 
   selectedSubjects, 
-  sections, 
-  hasMidterm,
+  terms,
   reportCardStyle,
   onStyleChange 
 }: ReportCardPreviewProps) {
@@ -42,8 +40,11 @@ export function ReportCardPreview({
   const [downloadingAll, setDownloadingAll] = useState(false);
 
   const currentStudent = students[currentIndex];
-  const selectedSections = sections.filter(s => s.selected && s.parsedData);
+  const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   const isBlackWhite = reportCardStyle === 'blackWhite';
+
+  // Check if any term has test data
+  const hasAnyTestData = selectedTerms.some(t => t.testParsedData);
 
   const handleDownloadSingle = async (student: Student) => {
     setDownloading(student.id);
@@ -54,8 +55,7 @@ export function ReportCardPreview({
         totalStudents: students.length,
         classTeacher,
         selectedSubjects,
-        sections: selectedSections,
-        hasMidterm,
+        terms: selectedTerms,
         reportCardStyle,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
@@ -75,8 +75,7 @@ export function ReportCardPreview({
           totalStudents: students.length,
           classTeacher,
           selectedSubjects,
-          sections: selectedSections,
-          hasMidterm,
+          terms: selectedTerms,
           reportCardStyle,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
@@ -109,6 +108,9 @@ export function ReportCardPreview({
   const filteredSubjects = allSubjects.filter(s => 
     selectedSubjects.length === 0 || selectedSubjects.includes(s.subject)
   );
+
+  // Get max marks from first subject of first term (should be same across all)
+  const firstSubject = filteredSubjects[0];
 
   return (
     <Card className="card-hover overflow-hidden">
@@ -229,7 +231,7 @@ export function ReportCardPreview({
             </div>
             <div className="text-center mt-2">
               <span className={`px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-medium ${isBlackWhite ? 'bg-foreground text-background' : 'bg-background/20'}`}>
-                {school.termName || 'Term Report Card'}
+                {school.className && `${school.className} - `}{school.termName || 'Term Report Card'}
               </span>
             </div>
           </div>
@@ -252,31 +254,32 @@ export function ReportCardPreview({
             </div>
           </div>
 
-          {/* Marks Table - Dynamic columns based on whether midterm is included */}
+          {/* Marks Table - New format with MAX columns first */}
           <div className="p-2 sm:p-4 overflow-x-auto">
-            <table className="w-full text-xs sm:text-sm border-collapse min-w-[400px]">
+            <table className="w-full text-xs sm:text-sm border-collapse min-w-[500px]">
               <thead>
                 <tr className={isBlackWhite ? 'bg-muted' : 'bg-muted'}>
-                  <th className="text-left p-1 sm:p-2 font-semibold border border-border w-[120px]">SUBJECTS</th>
-                  {selectedSections.map((section) => (
-                    <th key={section.id} className="text-center p-1 font-semibold border border-border" colSpan={hasMidterm ? 3 : 2}>
-                      {section.shortName}
+                  <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>SUBJECTS</th>
+                  <th className="text-center p-1 font-semibold border border-border" colSpan={3}>MAX</th>
+                  {selectedTerms.map((term) => (
+                    <th key={term.id} className="text-center p-1 font-semibold border border-border" colSpan={3}>
+                      {term.shortName}
                     </th>
                   ))}
-                  <th className="text-center p-1 font-semibold border border-border">Rank</th>
-                  <th className="text-center p-1 font-semibold border border-border w-[80px]">Comments</th>
+                  <th className="text-center p-1 font-semibold border border-border" rowSpan={2}>Rank</th>
+                  <th className="text-center p-1 font-semibold border border-border" rowSpan={2}>Comments</th>
                 </tr>
                 <tr className="bg-muted/50">
-                  <th className="border border-border"></th>
-                  {selectedSections.map((section) => (
-                    <React.Fragment key={section.id}>
-                      {hasMidterm && <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>}
+                  <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>
+                  <th className="text-center p-1 font-medium border border-border text-xs">EX</th>
+                  <th className="text-center p-1 font-medium border border-border text-xs">TOT</th>
+                  {selectedTerms.map((term) => (
+                    <React.Fragment key={term.id}>
+                      <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">EX</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">TOT</th>
                     </React.Fragment>
                   ))}
-                  <th className="border border-border"></th>
-                  <th className="border border-border"></th>
                 </tr>
               </thead>
               <tbody>
@@ -284,19 +287,20 @@ export function ReportCardPreview({
                   return (
                     <tr key={subjectData.subject} className="hover:bg-muted/30 transition-colors">
                       <td className="p-1 sm:p-2 font-medium border border-border">{subjectData.subject}</td>
+                      {/* MAX columns - from first term or any available */}
+                      <td className="p-1 text-center border border-border">{subjectData.maxMtt || '-'}</td>
+                      <td className="p-1 text-center border border-border">{subjectData.maxExam || '-'}</td>
+                      <td className="p-1 text-center border border-border font-medium">{subjectData.maxTotal || '-'}</td>
+                      {/* Per-term marks */}
                       {currentStudent.terms.map((term) => {
                         const mark = term.subjects.find(s => s.subject === subjectData.subject);
-                        const hasMtt = mark && mark.mtt > 0;
-                        const hasExam = mark && mark.exam > 0;
                         return (
                           <React.Fragment key={term.termId}>
-                            {hasMidterm && (
-                              <td className="p-1 text-center border border-border">
-                                {hasMtt ? mark.mtt : '-'}
-                              </td>
-                            )}
                             <td className="p-1 text-center border border-border">
-                              {hasExam ? mark.exam : '-'}
+                              {mark && mark.mtt > 0 ? mark.mtt : '-'}
+                            </td>
+                            <td className="p-1 text-center border border-border">
+                              {mark && mark.exam > 0 ? mark.exam : '-'}
                             </td>
                             <td className="p-1 text-center border border-border font-medium">
                               {mark?.total || '-'}
@@ -312,12 +316,22 @@ export function ReportCardPreview({
                 {/* Total Row */}
                 <tr className="bg-muted font-semibold">
                   <td className="p-1 sm:p-2 border border-border">Total</td>
+                  {/* MAX totals */}
+                  <td className="p-1 text-center border border-border">
+                    {filteredSubjects.reduce((sum, s) => sum + (s.maxMtt || 0), 0) || '-'}
+                  </td>
+                  <td className="p-1 text-center border border-border">
+                    {filteredSubjects.reduce((sum, s) => sum + (s.maxExam || 0), 0) || '-'}
+                  </td>
+                  <td className="p-1 text-center border border-border">
+                    {filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0) || '-'}
+                  </td>
                   {currentStudent.terms.map((term) => {
                     const termMttTotal = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
                     const termExamTotal = term.subjects.reduce((sum, s) => sum + s.exam, 0);
                     return (
                       <React.Fragment key={term.termId}>
-                        {hasMidterm && <td className="p-1 text-center border border-border">{termMttTotal || '-'}</td>}
+                        <td className="p-1 text-center border border-border">{termMttTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{termExamTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{term.totalMarks}</td>
                       </React.Fragment>
@@ -329,11 +343,11 @@ export function ReportCardPreview({
                 {/* Average Row */}
                 <tr className="bg-muted/50">
                   <td className="p-1 sm:p-2 border border-border font-medium">Average</td>
-                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`} colSpan={hasMidterm ? 2 : 1}>
+                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`} colSpan={3}>
                     {currentStudent.overallPercentage.toFixed(1)}%
                   </td>
-                  <td className="p-1 text-center border border-border font-medium">Rank</td>
-                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`} colSpan={selectedSections.length > 1 ? selectedSections.length : 1}>
+                  <td className="p-1 text-center border border-border font-medium" colSpan={selectedTerms.length > 0 ? selectedTerms.length * 2 : 1}>Rank</td>
+                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`} colSpan={selectedTerms.length > 0 ? selectedTerms.length : 1}>
                     {currentStudent.position}
                   </td>
                   <td className="p-1 text-center border border-border" colSpan={2}></td>
@@ -387,54 +401,10 @@ export function ReportCardPreview({
           ) : (
             <>
               <Download className="h-4 w-4 mr-2" />
-              Download This Report Card
+              Download {currentStudent.fullName}'s Report Card
             </>
           )}
         </Button>
-
-        {/* All Students List */}
-        <div className="space-y-2">
-          <h4 className="font-medium text-sm">All Students</h4>
-          <div className="max-h-[200px] overflow-y-auto space-y-1">
-            {students.map((student, index) => (
-              <div
-                key={student.id}
-                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${
-                  index === currentIndex 
-                    ? 'bg-primary/10 border border-primary/30' 
-                    : 'hover:bg-muted'
-                }`}
-                onClick={() => setCurrentIndex(index)}
-              >
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <span className="text-xs sm:text-sm text-muted-foreground w-5 sm:w-6 flex-shrink-0">{student.position}</span>
-                  <span className="font-medium text-sm truncate">{student.fullName}</span>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                  <Badge variant="secondary" className={`text-xs ${getGradeColor(student.overallPercentage, isBlackWhite)}`}>
-                    {student.overallPercentage.toFixed(1)}%
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadSingle(student);
-                    }}
-                    disabled={downloading === student.id}
-                    className="h-6 w-6 sm:h-7 sm:w-7 p-0"
-                  >
-                    {downloading === student.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Download className="h-3 w-3" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

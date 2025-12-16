@@ -1,56 +1,99 @@
-import { Student, TermSection, TermData } from '@/types/reportCard';
+import { Student, TermUpload, TermData, SubjectMark } from '@/types/reportCard';
 
-export function mergeStudentsFromSections(sections: TermSection[]): Student[] {
-  const uploadedSections = sections.filter(s => s.selected && s.parsedData && s.parsedData.students.length > 0);
+export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
+  const uploadedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   
-  if (uploadedSections.length === 0) return [];
+  if (uploadedTerms.length === 0) return [];
 
-  // Get student names from first uploaded section
-  const firstSection = uploadedSections[0];
-  const studentCount = firstSection.parsedData!.students.length;
+  // Get student count from first available data
+  const firstTerm = uploadedTerms[0];
+  const firstData = firstTerm.testParsedData || firstTerm.examParsedData;
+  if (!firstData) return [];
   
-  // Build students array
+  const studentCount = firstData.students.length;
   const students: Student[] = [];
   
+  // Get all unique subjects from all terms
+  const allSubjectsMap = new Map<string, { maxMtt: number; maxExam: number }>();
+  
+  uploadedTerms.forEach(term => {
+    if (term.testParsedData) {
+      term.testParsedData.students[0]?.marks.forEach(m => {
+        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        existing.maxMtt = Math.max(existing.maxMtt, m.maxMarks);
+        allSubjectsMap.set(m.subject, existing);
+      });
+    }
+    if (term.examParsedData) {
+      term.examParsedData.students[0]?.marks.forEach(m => {
+        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        existing.maxExam = Math.max(existing.maxExam, m.maxMarks);
+        allSubjectsMap.set(m.subject, existing);
+      });
+    }
+  });
+  
   for (let i = 0; i < studentCount; i++) {
-    const terms: TermData[] = [];
+    const termsData: TermData[] = [];
     let grandTotal = 0;
     let grandMax = 0;
     let conductMarks = 0;
     let conductMax = 100;
     let studentName = '';
     
-    uploadedSections.forEach(section => {
-      const studentData = section.parsedData!.students[i];
-      if (!studentData) return;
+    uploadedTerms.forEach(term => {
+      const testStudent = term.testParsedData?.students[i];
+      const examStudent = term.examParsedData?.students[i];
       
-      studentName = studentData.fullName;
-      conductMarks = studentData.conductMarks;
-      conductMax = studentData.conductMax;
+      // Get student name from whichever source is available
+      studentName = testStudent?.fullName || examStudent?.fullName || studentName;
+      conductMarks = testStudent?.conductMarks || examStudent?.conductMarks || conductMarks;
+      conductMax = testStudent?.conductMax || examStudent?.conductMax || conductMax;
       
-      // Convert ParsedStudent marks to SubjectMark format
-      const subjects = studentData.marks.map(m => ({
-        subject: m.subject,
-        mtt: m.mtt,
-        exam: m.exam,
-        total: m.total,
-        maxMtt: m.maxMtt,
-        maxExam: m.maxExam,
-      }));
+      // Build subjects for this term
+      const subjects: SubjectMark[] = [];
+      let termTotal = 0;
+      let termMax = 0;
       
-      const termData: TermData = {
-        termId: section.id,
-        termName: section.name,
-        shortName: section.shortName,
+      allSubjectsMap.forEach((maxValues, subjectName) => {
+        const testMark = testStudent?.marks.find(m => m.subject === subjectName);
+        const examMark = examStudent?.marks.find(m => m.subject === subjectName);
+        
+        const mtt = testMark?.marks || 0;
+        const exam = examMark?.marks || 0;
+        const maxMtt = testMark?.maxMarks || maxValues.maxMtt;
+        const maxExam = examMark?.maxMarks || maxValues.maxExam;
+        const total = mtt + exam;
+        const maxTotal = maxMtt + maxExam;
+        
+        subjects.push({
+          subject: subjectName,
+          mtt,
+          exam,
+          total,
+          maxMtt,
+          maxExam,
+          maxTotal,
+        });
+        
+        termTotal += total;
+        termMax += maxTotal;
+      });
+      
+      const termPercentage = termMax > 0 ? (termTotal / termMax) * 100 : 0;
+      
+      termsData.push({
+        termId: term.id,
+        termName: term.name,
+        shortName: term.shortName,
         subjects,
-        totalMarks: studentData.totalMarks,
-        maxMarks: studentData.maxMarks,
-        percentage: studentData.percentage,
-      };
+        totalMarks: termTotal,
+        maxMarks: termMax,
+        percentage: termPercentage,
+      });
       
-      terms.push(termData);
-      grandTotal += studentData.totalMarks;
-      grandMax += studentData.maxMarks;
+      grandTotal += termTotal;
+      grandMax += termMax;
     });
     
     const overallPercentage = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
@@ -60,7 +103,7 @@ export function mergeStudentsFromSections(sections: TermSection[]): Student[] {
       fullName: studentName,
       conductMarks,
       conductMax,
-      terms,
+      terms: termsData,
       grandTotal,
       grandMax,
       overallPercentage,
@@ -68,9 +111,9 @@ export function mergeStudentsFromSections(sections: TermSection[]): Student[] {
     });
   }
   
-  // Calculate subject ranks for each subject
+  // Calculate subject ranks for each subject (across all students, summing all terms)
   if (students.length > 0 && students[0].terms.length > 0) {
-    const subjects = students[0].terms[0].subjects.map(s => s.subject);
+    const subjects = Array.from(allSubjectsMap.keys());
     
     subjects.forEach(subject => {
       // Get all students' totals for this subject (across all terms)
@@ -90,14 +133,14 @@ export function mergeStudentsFromSections(sections: TermSection[]): Student[] {
         ranks.set(item.studentId, idx + 1);
       });
       
-      // Assign rank to each student's subject marks
+      // Assign rank to each student's subject marks (in first term for display)
       students.forEach(student => {
-        student.terms.forEach(term => {
-          const mark = term.subjects.find(s => s.subject === subject);
+        if (student.terms[0]) {
+          const mark = student.terms[0].subjects.find(s => s.subject === subject);
           if (mark) {
             mark.rank = ranks.get(student.id);
           }
-        });
+        }
       });
     });
   }

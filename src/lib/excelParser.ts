@@ -15,15 +15,13 @@ interface SubjectColumn {
 }
 
 /**
- * New Excel format:
+ * Excel format:
  * Full names | Mathematics/30 | ENGLISH/100 | SET/50 | Conduct/100
  * 
- * For midterm files: Each column is a subject with /MAX at the end indicating max marks
- * For exam files: Same format
- * 
+ * Each column is a subject with /MAX at the end indicating max marks
  * The system extracts the subject name (before /) and max marks (after /)
  */
-export function parseExcelFile(file: File, isMidtermFile: boolean = false): Promise<ParseResult> {
+export function parseExcelFile(file: File): Promise<ParseResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
     
@@ -67,7 +65,7 @@ export function parseExcelFile(file: File, isMidtermFile: boolean = false): Prom
 
         // Find conduct column - format: Conduct/MAX
         let conductColumnIndex = -1;
-        let conductMaxFromFile = 100; // Default if not specified in Excel
+        let conductMaxFromFile = 100;
         
         headers.forEach((h, index) => {
           if (!h) return;
@@ -76,7 +74,6 @@ export function parseExcelFile(file: File, isMidtermFile: boolean = false): Prom
           
           if (headerLower.includes('conduct')) {
             conductColumnIndex = index;
-            // Extract max from conduct column if present
             if (headerStr.includes('/')) {
               const parts = headerStr.split('/');
               const maxVal = parseInt(parts[1], 10);
@@ -106,9 +103,9 @@ export function parseExcelFile(file: File, isMidtermFile: boolean = false): Prom
             return;
           }
           
-          // Parse Subject/MAX format - MAX is required
+          // Parse Subject/MAX format
           let subjectName = headerStr;
-          let maxMarks = 100; // Default if no /MAX specified
+          let maxMarks = 100;
           
           if (headerStr.includes('/')) {
             const parts = headerStr.split('/');
@@ -117,7 +114,7 @@ export function parseExcelFile(file: File, isMidtermFile: boolean = false): Prom
             if (!isNaN(maxVal)) maxMarks = maxVal;
           }
           
-          // Clean up subject name (remove any trailing numbers or special chars)
+          // Clean up subject name
           subjectName = subjectName.replace(/_MTT|_EXAM|_mtt|_exam/gi, '').trim();
           
           if (subjectName && !detectedSubjects.includes(subjectName)) {
@@ -141,26 +138,17 @@ export function parseExcelFile(file: File, isMidtermFile: boolean = false): Prom
           
           if (!fullName || fullName.trim() === '') continue;
           
-          const marks: { subject: string; mtt: number; exam: number; total: number; maxMtt: number; maxExam: number }[] = [];
+          const marks: { subject: string; marks: number; maxMarks: number }[] = [];
           let totalMarks = 0;
           
           subjectColumns.forEach((col) => {
             const value = Number(row[col.index]) || 0;
-            
-            // If this is a midterm file, marks go to MTT, otherwise to EXAM
-            const mtt = isMidtermFile ? value : 0;
-            const exam = isMidtermFile ? 0 : value;
-            const total = value;
-            
             marks.push({ 
               subject: col.name, 
-              mtt, 
-              exam, 
-              total,
-              maxMtt: isMidtermFile ? col.maxMarks : 0,
-              maxExam: isMidtermFile ? 0 : col.maxMarks,
+              marks: value,
+              maxMarks: col.maxMarks,
             });
-            totalMarks += total;
+            totalMarks += value;
           });
           
           const conductMarksValue = conductColumnIndex !== -1 

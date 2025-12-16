@@ -6,15 +6,14 @@ import { SubjectSelector } from '@/components/SubjectSelector';
 import { TermSelector } from '@/components/TermSelector';
 import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
-import { mergeStudentsFromSections } from '@/lib/studentMerger';
-import { SchoolData, Student, ThemeMode, TermSection, ReportCardStyle } from '@/types/reportCard';
+import { mergeStudentsFromTerms } from '@/lib/studentMerger';
+import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle } from '@/types/reportCard';
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList } from 'lucide-react';
 
-const defaultSections: TermSection[] = [
-  { id: 'midterm', name: 'Midterm Test', shortName: 'MTT', selected: false, file: null, parsedData: null, isMidterm: true },
-  { id: 'term1', name: 'End of Term 1', shortName: 'T1', selected: false, file: null, parsedData: null, isMidterm: false },
-  { id: 'term2', name: 'End of Term 2', shortName: 'T2', selected: false, file: null, parsedData: null, isMidterm: false },
-  { id: 'term3', name: 'End of Term 3', shortName: 'T3', selected: false, file: null, parsedData: null, isMidterm: false },
+const defaultTerms: TermUpload[] = [
+  { id: 'term1', name: 'Term 1', shortName: 'T1', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
+  { id: 'term2', name: 'Term 2', shortName: 'T2', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
+  { id: 'term3', name: 'Term 3', shortName: 'T3', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
 ];
 
 const Index = () => {
@@ -24,11 +23,12 @@ const Index = () => {
     address: '',
     headTeacher: '',
     contact: '',
+    className: '',
     termName: '',
     logo: null,
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [sections, setSections] = useState<TermSection[]>(defaultSections);
+  const [terms, setTerms] = useState<TermUpload[]>(defaultTerms);
   const [students, setStudents] = useState<Student[]>([]);
   const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
 
@@ -43,29 +43,29 @@ const Index = () => {
     }
   }, [theme]);
 
-  // Merge students when sections are updated
+  // Merge students when terms are updated
   useEffect(() => {
-    const merged = mergeStudentsFromSections(sections);
+    const merged = mergeStudentsFromTerms(terms);
     setStudents(merged);
     
     // Auto-select detected subjects
     const allSubjects = new Set<string>();
-    sections.forEach(s => {
-      if (s.parsedData) {
-        s.parsedData.detectedSubjects.forEach(sub => allSubjects.add(sub));
+    terms.forEach(t => {
+      if (t.testParsedData) {
+        t.testParsedData.detectedSubjects.forEach(sub => allSubjects.add(sub));
+      }
+      if (t.examParsedData) {
+        t.examParsedData.detectedSubjects.forEach(sub => allSubjects.add(sub));
       }
     });
     if (allSubjects.size > 0 && selectedSubjects.length === 0) {
       setSelectedSubjects(Array.from(allSubjects));
     }
-  }, [sections]);
-
-  // Check if midterm is included
-  const hasMidterm = sections.some(s => s.selected && s.isMidterm);
+  }, [terms]);
 
   const steps = [
     { icon: BookOpen, title: 'Setup School', description: 'Enter school info' },
-    { icon: ClipboardList, title: 'Select Terms', description: 'Choose sections' },
+    { icon: ClipboardList, title: 'Select Terms', description: 'Choose terms' },
     { icon: FileSpreadsheet, title: 'Upload Marks', description: 'Upload Excel files' },
     { icon: Download, title: 'Download PDFs', description: 'Get report cards' },
   ];
@@ -92,7 +92,7 @@ const Index = () => {
                 <span className="gradient-text">Report Cards</span>
               </h1>
               <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 animate-fade-up px-4" style={{ animationDelay: '0.2s' }}>
-                Multi-term report cards with TEST, EXAM & TOTAL columns. Works on phone, tablet & computer!
+                Multi-term report cards with MAX, TEST, EXAM & TOTAL columns. Works on phone, tablet & computer!
               </p>
               
               {/* Steps */}
@@ -129,15 +129,15 @@ const Index = () => {
               
               <div className="animate-slide-in" style={{ animationDelay: '0.2s' }}>
                 <TermSelector 
-                  sections={sections}
-                  onSectionsChange={setSections}
+                  terms={terms}
+                  onTermsChange={setTerms}
                 />
               </div>
               
               <div className="animate-slide-in" style={{ animationDelay: '0.3s' }}>
                 <MultiFileUpload 
-                  sections={sections}
-                  onSectionsUpdate={setSections}
+                  terms={terms}
+                  onTermsUpdate={setTerms}
                 />
               </div>
               
@@ -155,8 +155,7 @@ const Index = () => {
                 students={students}
                 school={schoolData}
                 selectedSubjects={selectedSubjects}
-                sections={sections}
-                hasMidterm={hasMidterm}
+                terms={terms}
                 reportCardStyle={reportCardStyle}
                 onStyleChange={setReportCardStyle}
               />
@@ -175,7 +174,7 @@ const Index = () => {
                 {[
                   {
                     title: 'Multi-Term Support',
-                    description: 'Generate reports with TEST, EXAM, and TOTAL columns for multiple terms.',
+                    description: 'Generate reports with MAX, TEST, EXAM, and TOTAL columns for multiple terms.',
                     color: 'bg-green/20 text-green',
                   },
                   {
