@@ -122,6 +122,21 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Optional Ministry/Header Field */}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="ministryName" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-accent" />
+              Ministry/Header (Optional)
+            </Label>
+            <Input
+              id="ministryName"
+              placeholder="e.g., Ministry of Education, Rwanda"
+              value={schoolData.ministryName || ''}
+              onChange={(e) => onSchoolDataChange({ ...schoolData, ministryName: e.target.value })}
+              className="transition-all focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="schoolName" className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-primary" />
@@ -172,6 +187,19 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
               placeholder="e.g., P5A, S3 Science"
               value={schoolData.className}
               onChange={(e) => onSchoolDataChange({ ...schoolData, className: e.target.value })}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="classTeacher" className="flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-purple" />
+              Class Teacher Name
+            </Label>
+            <Input
+              id="classTeacher"
+              placeholder="Enter class teacher name"
+              value={schoolData.classTeacher || ''}
+              onChange={(e) => onSchoolDataChange({ ...schoolData, classTeacher: e.target.value })}
             />
           </div>
 
