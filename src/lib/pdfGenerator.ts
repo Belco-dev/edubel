@@ -6,14 +6,13 @@ interface GeneratePDFOptions {
   student: Student;
   school: SchoolData;
   totalStudents: number;
-  classTeacher: string;
   selectedSubjects: string[];
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, classTeacher, selectedSubjects, terms, reportCardStyle } = options;
+  const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -27,14 +26,25 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   let currentY = 0;
   
+  // Ministry/Header at the very top (optional)
+  if (school.ministryName) {
+    doc.setFontSize(9);
+    doc.setTextColor(...textBlack);
+    doc.setFont('helvetica', 'bold');
+    doc.text(school.ministryName, pageWidth / 2, 8, { align: 'center' });
+    currentY = 12;
+  }
+  
   // Custom Detail - Top positions
   if (school.customDetail?.text && (school.customDetail.position === 'topLeft' || school.customDetail.position === 'topRight')) {
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
+    doc.setFont('helvetica', 'normal');
     const xPos = school.customDetail.position === 'topRight' ? pageWidth - 10 : 10;
     const align = school.customDetail.position === 'topRight' ? 'right' : 'left';
-    doc.text(school.customDetail.text, xPos, 8, { align: align as 'left' | 'right' });
-    currentY = 10;
+    const yPos = currentY > 0 ? currentY + 4 : 8;
+    doc.text(school.customDetail.text, xPos, yPos, { align: align as 'left' | 'right' });
+    currentY = Math.max(currentY, yPos + 4);
   }
   
   // Header
@@ -93,17 +103,39 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFont('helvetica', 'bold');
   doc.text('Class Teacher:', pageWidth / 2, currentY + 8);
   doc.setFont('helvetica', 'normal');
-  doc.text(classTeacher || '________________', pageWidth / 2 + 30, currentY + 8);
+  doc.text(school.classTeacher || '________________', pageWidth / 2 + 30, currentY + 8);
   
   currentY += 22;
   
   // Build table headers - New format with MAX columns first
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
+  const hasThreeTerms = selectedTerms.length === 3;
   
-  const tableHeaders: string[][] = [
-    ['SUBJECTS', 'MAX', '', '', ...selectedTerms.flatMap(t => [t.shortName, '', '']), 'Rank', 'Comments'],
-    ['', 'TEST', 'EX', 'TOT', ...selectedTerms.flatMap(() => ['TEST', 'EX', 'TOT']), '', ''],
-  ];
+  // Build header rows
+  const headerRow1: string[] = ['SUBJECTS', 'MAX', '', ''];
+  const headerRow2: string[] = ['', 'TEST', 'EX', 'TOT'];
+  
+  // Add term columns with rank
+  selectedTerms.forEach(t => {
+    headerRow1.push(t.shortName, '', '', 'Rank');
+    headerRow2.push('TEST', 'EX', 'TOT', '');
+  });
+  
+  // Add average columns if 3 terms
+  if (hasThreeTerms) {
+    headerRow1.push('AVERAGE', '', '');
+    headerRow2.push('TEST', 'EX', 'TOT');
+  }
+  
+  // Add final rank column
+  headerRow1.push(hasThreeTerms ? 'Annual Rank' : 'Rank');
+  headerRow2.push('');
+  
+  // Comments column
+  headerRow1.push('Comments');
+  headerRow2.push('');
+  
+  const tableHeaders: string[][] = [headerRow1, headerRow2];
   
   // Build table data
   const allSubjects = student.terms[0]?.subjects || [];
@@ -126,11 +158,23 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       row.push(
         mark && mark.mtt > 0 ? mark.mtt : '-',
         mark && mark.exam > 0 ? mark.exam : '-',
-        mark?.total || '-'
+        mark?.total || '-',
+        '' // Placeholder for per-term rank (only shown in total row)
       );
     });
     
-    row.push(subjectData.rank || '-', '');
+    // Add averages if 3 terms
+    if (hasThreeTerms) {
+      const avgData = student.subjectAverages?.find(a => a.subject === subjectData.subject);
+      row.push(
+        avgData?.avgTest || '-',
+        avgData?.avgExam || '-',
+        avgData?.avgTotal || '-'
+      );
+    }
+    
+    row.push(subjectData.rank || '-');
+    row.push('');
     tableData.push(row);
   });
   
@@ -141,30 +185,54 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     filteredSubjects.reduce((sum, s) => sum + (s.maxExam || 0), 0) || '-',
     filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0) || '-',
   ];
+  
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
+    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks, term.termRank || '-');
   });
-  totalRow.push('', '');
+  
+  if (hasThreeTerms) {
+    const avgTestTotal = student.subjectAverages?.reduce((sum, s) => sum + s.avgTest, 0) || 0;
+    const avgExamTotal = student.subjectAverages?.reduce((sum, s) => sum + s.avgExam, 0) || 0;
+    const avgTotalTotal = student.subjectAverages?.reduce((sum, s) => sum + s.avgTotal, 0) || 0;
+    totalRow.push(
+      Math.round(avgTestTotal * 10) / 10 || '-',
+      Math.round(avgExamTotal * 10) / 10 || '-',
+      Math.round(avgTotalTotal * 10) / 10 || '-'
+    );
+  }
+  
+  totalRow.push('');
+  totalRow.push('');
   tableData.push(totalRow);
   
-  // Average row
-  const avgRow: (string | number)[] = ['Average', `${student.overallPercentage.toFixed(1)}%`, '', ''];
-  selectedTerms.forEach((_, idx) => {
-    if (idx === 0) avgRow.push('Rank', '', '');
-    else avgRow.push('', '', '');
+  // Percentage/Average row
+  const avgRow: (string | number)[] = ['Percentage', `${student.overallPercentage.toFixed(1)}%`, '', ''];
+  
+  selectedTerms.forEach(term => {
+    const termData = student.terms.find(t => t.termId === term.id);
+    avgRow.push(`${termData?.percentage.toFixed(1) || 0}%`, '', '', '');
   });
-  avgRow.push(student.position.toString(), '');
+  
+  if (hasThreeTerms) {
+    const avgTotalSum = student.subjectAverages?.reduce((sum, s) => sum + s.avgTotal, 0) || 0;
+    const avgMaxSum = filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0);
+    const annualPercentage = avgMaxSum > 0 ? (avgTotalSum / avgMaxSum) * 100 : 0;
+    avgRow.push(`${annualPercentage.toFixed(1)}%`, '', '');
+  }
+  
+  avgRow.push(hasThreeTerms ? (student.annualRank || student.position).toString() : student.position.toString());
+  avgRow.push('');
   tableData.push(avgRow);
   
   // Calculate column widths dynamically
   const numTerms = selectedTerms.length;
-  const subjectColWidth = 28;
-  const maxColWidth = 8;
-  const termColWidth = 8;
-  const rankColWidth = 10;
-  const commentsColWidth = 18;
+  const subjectColWidth = hasThreeTerms ? 22 : 28;
+  const maxColWidth = 7;
+  const termColWidth = 7;
+  const rankColWidth = 8;
+  const commentsColWidth = hasThreeTerms ? 12 : 18;
   
   const columnStyles: Record<number, { cellWidth: number; halign?: 'left' | 'center' | 'right' }> = {
     0: { cellWidth: subjectColWidth, halign: 'left' },
@@ -178,8 +246,16 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+    columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' }; // Term rank
   }
-  columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' };
+  
+  if (hasThreeTerms) {
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+  }
+  
+  columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' }; // Annual/Overall rank
   columnStyles[colIdx] = { cellWidth: commentsColWidth, halign: 'left' };
   
   autoTable(doc, {
@@ -188,7 +264,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     body: tableData,
     theme: 'grid',
     styles: { 
-      fontSize: 6, 
+      fontSize: hasThreeTerms ? 5 : 6, 
       cellPadding: 1, 
       lineColor: [0, 0, 0], 
       lineWidth: 0.2 
@@ -198,7 +274,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       textColor: [0, 0, 0], 
       fontStyle: 'bold', 
       halign: 'center', 
-      fontSize: 6 
+      fontSize: hasThreeTerms ? 5 : 6 
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
@@ -207,7 +283,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       if (data.row.index === tableData.length - 2) {
         data.cell.styles.fontStyle = 'bold';
       }
-      // Style average row
+      // Style percentage row
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];

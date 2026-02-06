@@ -26,6 +26,8 @@ const Index = () => {
     className: '',
     termName: '',
     logo: null,
+    classTeacher: '',
+    ministryName: '',
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [terms, setTerms] = useState<TermUpload[]>(defaultTerms);

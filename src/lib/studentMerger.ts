@@ -98,6 +98,32 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     
     const overallPercentage = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
     
+    // Calculate subject averages for 3-term reports
+    const subjectAverages: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[] = [];
+    if (uploadedTerms.length === 3) {
+      allSubjectsMap.forEach((_, subjectName) => {
+        let totalTest = 0;
+        let totalExam = 0;
+        let totalTotal = 0;
+        
+        termsData.forEach(term => {
+          const mark = term.subjects.find(s => s.subject === subjectName);
+          if (mark) {
+            totalTest += mark.mtt;
+            totalExam += mark.exam;
+            totalTotal += mark.total;
+          }
+        });
+        
+        subjectAverages.push({
+          subject: subjectName,
+          avgTest: Math.round((totalTest / 3) * 10) / 10,
+          avgExam: Math.round((totalExam / 3) * 10) / 10,
+          avgTotal: Math.round((totalTotal / 3) * 10) / 10,
+        });
+      });
+    }
+    
     students.push({
       id: `student-${i}`,
       fullName: studentName,
@@ -108,8 +134,26 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       grandMax,
       overallPercentage,
       position: 0,
+      subjectAverages: uploadedTerms.length === 3 ? subjectAverages : undefined,
     });
   }
+  
+  // Calculate per-term rankings
+  uploadedTerms.forEach((_, termIndex) => {
+    // Sort students by this term's percentage and assign term rank
+    const termRankings = students
+      .map((student, idx) => ({
+        studentIdx: idx,
+        percentage: student.terms[termIndex]?.percentage || 0,
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+    
+    termRankings.forEach((item, rankIdx) => {
+      if (students[item.studentIdx].terms[termIndex]) {
+        students[item.studentIdx].terms[termIndex].termRank = rankIdx + 1;
+      }
+    });
+  });
   
   // Calculate subject ranks for each subject (across all students, summing all terms)
   if (students.length > 0 && students[0].terms.length > 0) {
@@ -145,11 +189,26 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     });
   }
   
-  // Sort by percentage and assign positions
+  // Sort by percentage and assign overall positions
   students.sort((a, b) => b.overallPercentage - a.overallPercentage);
   students.forEach((student, index) => {
     student.position = index + 1;
   });
+  
+  // Calculate annual rank for 3-term reports (based on average marks)
+  if (uploadedTerms.length === 3) {
+    // Annual rank is based on sum of averages (which is effectively the average of totals)
+    const annualRankings = students
+      .map((student, idx) => {
+        const avgSum = student.subjectAverages?.reduce((sum, s) => sum + s.avgTotal, 0) || 0;
+        return { studentIdx: idx, avgSum };
+      })
+      .sort((a, b) => b.avgSum - a.avgSum);
+    
+    annualRankings.forEach((item, rankIdx) => {
+      students[item.studentIdx].annualRank = rankIdx + 1;
+    });
+  }
   
   // Re-sort by name for display
   students.sort((a, b) => a.fullName.localeCompare(b.fullName));

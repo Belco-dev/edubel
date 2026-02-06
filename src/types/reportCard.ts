@@ -12,6 +12,8 @@ export interface SchoolData {
   termName: string;
   logo: string | null;
   customDetail?: CustomDetail;
+  classTeacher: string; // Class teacher name
+  ministryName?: string; // Optional ministry or header info
 }
 
 export interface Subject {
@@ -39,6 +41,13 @@ export interface TermData {
   totalMarks: number;
   maxMarks: number;
   percentage: number;
+  termRank?: number; // Rank for this specific term
+}
+
+export interface AverageData {
+  avgTest: number;
+  avgExam: number;
+  avgTotal: number;
 }
 
 export interface Student {
@@ -51,6 +60,8 @@ export interface Student {
   grandMax: number;
   overallPercentage: number;
   position: number;
+  annualRank?: number; // Annual rank based on average of 3 terms
+  subjectAverages?: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[];
 }
 
 // Each term has separate test and exam file uploads
