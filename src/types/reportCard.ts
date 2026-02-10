@@ -8,12 +8,13 @@ export interface SchoolData {
   address: string;
   headTeacher: string;
   contact: string;
-  className: string; // Added class name field
+  className: string;
   termName: string;
   logo: string | null;
   customDetail?: CustomDetail;
-  classTeacher: string; // Class teacher name
-  ministryName?: string; // Optional ministry or header info
+  customDetails?: CustomDetail[];
+  classTeacher: string;
+  ministryName?: string;
 }
 
 export interface Subject {

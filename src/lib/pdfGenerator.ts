@@ -35,17 +35,19 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     currentY = 12;
   }
   
-  // Custom Detail - Top positions
-  if (school.customDetail?.text && (school.customDetail.position === 'topLeft' || school.customDetail.position === 'topRight')) {
+  // Custom Details - Top positions
+  const allDetails = [...(school.customDetail?.text ? [school.customDetail] : []), ...(school.customDetails || [])];
+  const topDetails = allDetails.filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight'));
+  topDetails.forEach(detail => {
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'normal');
-    const xPos = school.customDetail.position === 'topRight' ? pageWidth - 10 : 10;
-    const align = school.customDetail.position === 'topRight' ? 'right' : 'left';
+    const xPos = detail.position === 'topRight' ? pageWidth - 10 : 10;
+    const align = detail.position === 'topRight' ? 'right' : 'left';
     const yPos = currentY > 0 ? currentY + 4 : 8;
-    doc.text(school.customDetail.text, xPos, yPos, { align: align as 'left' | 'right' });
+    doc.text(detail.text, xPos, yPos, { align: align as 'left' | 'right' });
     currentY = Math.max(currentY, yPos + 4);
-  }
+  });
   
   // Header
   const headerY = currentY;
@@ -107,7 +109,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   currentY += 22;
   
-  // Build table headers - New format with MAX columns first
+  // Build header rows - New format without vertical rank column
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   const hasThreeTerms = selectedTerms.length === 3;
   
@@ -115,10 +117,10 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const headerRow1: string[] = ['SUBJECTS', 'MAX', '', ''];
   const headerRow2: string[] = ['', 'TEST', 'EX', 'TOT'];
   
-  // Add term columns with rank
+  // Add term columns (no rank column per term in header)
   selectedTerms.forEach(t => {
-    headerRow1.push(t.shortName, '', '', 'Rank');
-    headerRow2.push('TEST', 'EX', 'TOT', '');
+    headerRow1.push(t.shortName, '', '');
+    headerRow2.push('TEST', 'EX', 'TOT');
   });
   
   // Add average columns if 3 terms
@@ -126,10 +128,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     headerRow1.push('AVERAGE', '', '');
     headerRow2.push('TEST', 'EX', 'TOT');
   }
-  
-  // Add final rank column
-  headerRow1.push(hasThreeTerms ? 'Annual Rank' : 'Rank');
-  headerRow2.push('');
   
   // Comments column
   headerRow1.push('Comments');
@@ -159,7 +157,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
         mark && mark.mtt > 0 ? mark.mtt : '-',
         mark && mark.exam > 0 ? mark.exam : '-',
         mark?.total || '-',
-        '' // Placeholder for per-term rank (only shown in total row)
       );
     });
     
@@ -173,7 +170,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       );
     }
     
-    row.push(subjectData.rank || '-');
     row.push('');
     tableData.push(row);
   });
@@ -189,7 +185,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks, term.termRank || '-');
+    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
   });
   
   if (hasThreeTerms) {
@@ -204,27 +200,38 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   }
   
   totalRow.push('');
-  totalRow.push('');
   tableData.push(totalRow);
   
-  // Percentage/Average row
-  const avgRow: (string | number)[] = ['Percentage', `${student.overallPercentage.toFixed(1)}%`, '', ''];
+  // Percentage row - percentage under TOT column for each term
+  const pctRow: (string | number)[] = ['Percentage', '', '', ''];
   
-  selectedTerms.forEach(term => {
-    const termData = student.terms.find(t => t.termId === term.id);
-    avgRow.push(`${termData?.percentage.toFixed(1) || 0}%`, '', '', '');
+  student.terms.forEach(term => {
+    pctRow.push('', '', `${term.percentage.toFixed(1)}%`);
   });
   
   if (hasThreeTerms) {
     const avgTotalSum = student.subjectAverages?.reduce((sum, s) => sum + s.avgTotal, 0) || 0;
     const avgMaxSum = filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0);
     const annualPercentage = avgMaxSum > 0 ? (avgTotalSum / avgMaxSum) * 100 : 0;
-    avgRow.push(`${annualPercentage.toFixed(1)}%`, '', '');
+    pctRow.push('', '', `${annualPercentage.toFixed(1)}%`);
   }
   
-  avgRow.push(hasThreeTerms ? (student.annualRank || student.position).toString() : student.position.toString());
-  avgRow.push('');
-  tableData.push(avgRow);
+  pctRow.push('');
+  tableData.push(pctRow);
+  
+  // Rank row - rank under TOT column for each term
+  const rankRow: (string | number)[] = ['Rank', '', '', ''];
+  
+  student.terms.forEach(term => {
+    rankRow.push('', '', term.termRank || '-');
+  });
+  
+  if (hasThreeTerms) {
+    rankRow.push('', '', student.annualRank || student.position);
+  }
+  
+  rankRow.push('');
+  tableData.push(rankRow);
   
   // Calculate column widths dynamically
   const numTerms = selectedTerms.length;
@@ -246,7 +253,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-    columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' }; // Term rank
   }
   
   if (hasThreeTerms) {
@@ -255,7 +261,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
   }
   
-  columnStyles[colIdx++] = { cellWidth: rankColWidth, halign: 'center' }; // Annual/Overall rank
   columnStyles[colIdx] = { cellWidth: commentsColWidth, halign: 'left' };
   
   autoTable(doc, {
@@ -279,14 +284,19 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
     didParseCell: (data) => {
-      // Bold the total row
-      if (data.row.index === tableData.length - 2) {
+      // Bold the total row (3rd from end)
+      if (data.row.index === tableData.length - 3) {
         data.cell.styles.fontStyle = 'bold';
       }
-      // Style percentage row
-      if (data.row.index === tableData.length - 1) {
+      // Style percentage row (2nd from end)
+      if (data.row.index === tableData.length - 2) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];
+      }
+      // Style rank row (last)
+      if (data.row.index === tableData.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = isBlackWhite ? [230, 230, 230] : [245, 245, 245];
       }
     },
   });
@@ -316,15 +326,17 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
-  // Custom Detail - Bottom positions
-  if (school.customDetail?.text && (school.customDetail.position === 'bottomLeft' || school.customDetail.position === 'bottomRight')) {
-    const bottomY = boxY + boxHeight + 8;
+  // Custom Details - Bottom positions
+  const bottomDetails = allDetails.filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight'));
+  let bottomY = boxY + boxHeight + 8;
+  bottomDetails.forEach(detail => {
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
-    const xPos = school.customDetail.position === 'bottomRight' ? pageWidth - 10 : 10;
-    const align = school.customDetail.position === 'bottomRight' ? 'right' : 'left';
-    doc.text(school.customDetail.text, xPos, bottomY, { align: align as 'left' | 'right' });
-  }
+    const xPos = detail.position === 'bottomRight' ? pageWidth - 10 : 10;
+    const align = detail.position === 'bottomRight' ? 'right' : 'left';
+    doc.text(detail.text, xPos, bottomY, { align: align as 'left' | 'right' });
+    bottomY += 5;
+  });
   
   return doc;
 }
