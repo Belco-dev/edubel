@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2 } from 'lucide-react';
+import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2, GripVertical } from 'lucide-react';
 import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,31 @@ interface SchoolSetupProps {
 export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleFieldDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleFieldDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleFieldDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    const items = [...(schoolData.customDetails || [])];
+    const [moved] = items.splice(dragIndex, 1);
+    items.splice(index, 0, moved);
+    onSchoolDataChange({ ...schoolData, customDetails: items });
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   const handleLogoUpload = (file: File) => {
     const reader = new FileReader();
@@ -269,8 +294,21 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
 
           {/* Dynamic custom details */}
           {(schoolData.customDetails || []).map((detail, index) => (
-            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="md:col-span-2 space-y-2">
+            <div
+              key={index}
+              draggable
+              onDragStart={() => handleFieldDragStart(index)}
+              onDragOver={(e) => handleFieldDragOver(e, index)}
+              onDrop={() => handleFieldDrop(index)}
+              onDragEnd={() => { setDragIndex(null); setDragOverIndex(null); }}
+              className={`grid grid-cols-[auto_1fr_1fr_auto] md:grid-cols-[auto_2fr_1fr_auto] gap-4 items-end transition-all ${
+                dragOverIndex === index ? 'border-t-2 border-primary' : ''
+              } ${dragIndex === index ? 'opacity-50' : ''}`}
+            >
+              <div className="flex items-center justify-center cursor-grab active:cursor-grabbing pt-6">
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
                 <Label>Field {index + 1} Text</Label>
                 <Input
                   placeholder="e.g., P.O. Box 123, Kigali"
