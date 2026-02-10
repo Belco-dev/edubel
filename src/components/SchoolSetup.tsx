@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap } from 'lucide-react';
+import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2 } from 'lucide-react';
 import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -217,42 +217,107 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
           </div>
         </div>
 
-        {/* Custom Detail Field */}
+        {/* Custom Detail Fields */}
         <div className="pt-4 border-t border-border space-y-4">
-          <Label className="flex items-center gap-2 text-base font-medium">
-            <FileText className="h-4 w-4 text-accent" />
-            Custom Detail (Optional)
-          </Label>
-          <p className="text-xs text-muted-foreground">Add any extra information to appear on the report card</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="customText">Detail Text</Label>
-              <Input
-                id="customText"
-                placeholder="e.g., Academic Year 2024-2025"
-                value={schoolData.customDetail?.text || ''}
-                onChange={(e) => handleCustomDetailChange('text', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Position</Label>
-              <Select 
-                value={schoolData.customDetail?.position || 'topLeft'} 
-                onValueChange={(v) => handleCustomDetailChange('position', v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select position" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="topLeft">Top Left</SelectItem>
-                  <SelectItem value="topRight">Top Right</SelectItem>
-                  <SelectItem value="bottomLeft">Bottom Left</SelectItem>
-                  <SelectItem value="bottomRight">Bottom Right</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2 text-base font-medium">
+              <FileText className="h-4 w-4 text-accent" />
+              Custom Fields (Optional)
+            </Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const current = schoolData.customDetails || [];
+                onSchoolDataChange({
+                  ...schoolData,
+                  customDetails: [...current, { text: '', position: 'topLeft' as const }],
+                });
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Field
+            </Button>
           </div>
+          <p className="text-xs text-muted-foreground">Add extra information to appear on the report card</p>
+          
+          {/* Legacy single custom detail */}
+          {schoolData.customDetail?.text && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div className="md:col-span-2 space-y-2">
+                <Label>Detail Text</Label>
+                <Input
+                  placeholder="e.g., Academic Year 2024-2025"
+                  value={schoolData.customDetail.text}
+                  onChange={(e) => handleCustomDetailChange('text', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Select value={schoolData.customDetail.position} onValueChange={(v) => handleCustomDetailChange('position', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="topLeft">Top Left</SelectItem>
+                    <SelectItem value="topRight">Top Right</SelectItem>
+                    <SelectItem value="bottomLeft">Bottom Left</SelectItem>
+                    <SelectItem value="bottomRight">Bottom Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic custom details */}
+          {(schoolData.customDetails || []).map((detail, index) => (
+            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-2 space-y-2">
+                <Label>Field {index + 1} Text</Label>
+                <Input
+                  placeholder="e.g., P.O. Box 123, Kigali"
+                  value={detail.text}
+                  onChange={(e) => {
+                    const updated = [...(schoolData.customDetails || [])];
+                    updated[index] = { ...updated[index], text: e.target.value };
+                    onSchoolDataChange({ ...schoolData, customDetails: updated });
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Select 
+                  value={detail.position} 
+                  onValueChange={(v) => {
+                    const updated = [...(schoolData.customDetails || [])];
+                    updated[index] = { ...updated[index], position: v as CustomDetail['position'] };
+                    onSchoolDataChange({ ...schoolData, customDetails: updated });
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="topLeft">Top Left</SelectItem>
+                    <SelectItem value="topRight">Top Right</SelectItem>
+                    <SelectItem value="bottomLeft">Bottom Left</SelectItem>
+                    <SelectItem value="bottomRight">Bottom Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive/80"
+                onClick={() => {
+                  const updated = (schoolData.customDetails || []).filter((_, i) => i !== index);
+                  onSchoolDataChange({ ...schoolData, customDetails: updated });
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+
+          {(!schoolData.customDetails || schoolData.customDetails.length === 0) && !schoolData.customDetail?.text && (
+            <p className="text-xs text-muted-foreground italic text-center py-2">Click "Add Field" to add custom information to your report cards</p>
+          )}
         </div>
       </CardContent>
     </Card>

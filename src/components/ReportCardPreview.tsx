@@ -201,12 +201,12 @@ export function ReportCardPreview({
             </div>
           )}
           
-          {/* Custom Detail - Top positions */}
-          {school.customDetail?.text && (school.customDetail.position === 'topLeft' || school.customDetail.position === 'topRight') && (
-            <div className={`px-3 py-1 text-xs ${school.customDetail.position === 'topRight' ? 'text-right' : 'text-left'} ${isBlackWhite ? 'bg-muted' : 'bg-primary/5'}`}>
-              {school.customDetail.text}
+          {/* Custom Details - Top positions */}
+          {[...(school.customDetail?.text ? [school.customDetail] : []), ...(school.customDetails || [])].filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight')).map((detail, i) => (
+            <div key={i} className={`px-3 py-1 text-xs ${detail.position === 'topRight' ? 'text-right' : 'text-left'} ${isBlackWhite ? 'bg-muted' : 'bg-primary/5'}`}>
+              {detail.text}
             </div>
-          )}
+          ))}
 
           {/* Header */}
           <div className={`p-3 sm:p-4 ${isBlackWhite ? 'bg-muted border-b-2 border-foreground' : 'bg-gradient-primary text-primary-foreground'}`}>
@@ -257,16 +257,13 @@ export function ReportCardPreview({
                   <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>SUBJECTS</th>
                   <th className="text-center p-1 font-semibold border border-border" colSpan={3}>MAX</th>
                   {selectedTerms.map((term) => (
-                    <th key={term.id} className="text-center p-1 font-semibold border border-border" colSpan={4}>
+                    <th key={term.id} className="text-center p-1 font-semibold border border-border" colSpan={3}>
                       {term.shortName}
                     </th>
                   ))}
                   {hasThreeTerms && (
                     <th className="text-center p-1 font-semibold border border-border" colSpan={3}>AVERAGE</th>
                   )}
-                  <th className="text-center p-1 font-semibold border border-border" rowSpan={2}>
-                    {hasThreeTerms ? 'Annual Rank' : 'Rank'}
-                  </th>
                   <th className="text-center p-1 font-semibold border border-border" rowSpan={2}>Comments</th>
                 </tr>
                 <tr className="bg-muted/50">
@@ -278,7 +275,6 @@ export function ReportCardPreview({
                       <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">EX</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">TOT</th>
-                      <th className="text-center p-1 font-medium border border-border text-xs">Rank</th>
                     </React.Fragment>
                   ))}
                   {hasThreeTerms && (
@@ -314,7 +310,6 @@ export function ReportCardPreview({
                             <td className="p-1 text-center border border-border font-medium">
                               {mark?.total || '-'}
                             </td>
-                            <td className="p-1 text-center border border-border"></td>
                           </React.Fragment>
                         );
                       })}
@@ -326,7 +321,6 @@ export function ReportCardPreview({
                           <td className="p-1 text-center border border-border font-medium">{avgData?.avgTotal || '-'}</td>
                         </>
                       )}
-                      <td className="p-1 text-center border border-border font-medium">{subjectData.rank || '-'}</td>
                       <td className="p-1 text-center border border-border"></td>
                     </tr>
                   );
@@ -352,7 +346,6 @@ export function ReportCardPreview({
                         <td className="p-1 text-center border border-border">{termMttTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{termExamTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{term.totalMarks}</td>
-                        <td className="p-1 text-center border border-border font-bold">{term.termRank || '-'}</td>
                       </React.Fragment>
                     );
                   })}
@@ -371,20 +364,17 @@ export function ReportCardPreview({
                     </>
                   )}
                   <td className="p-1 text-center border border-border"></td>
-                  <td className="p-1 text-center border border-border"></td>
                 </tr>
                 {/* Percentage Row */}
                 <tr className="bg-muted/50">
                   <td className="p-1 sm:p-2 border border-border font-medium">Percentage</td>
-                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`} colSpan={3}>
-                    {currentStudent.overallPercentage.toFixed(1)}%
-                  </td>
+                  <td className="p-1 text-center border border-border" colSpan={3}></td>
                   {currentStudent.terms.map((term) => (
                     <React.Fragment key={term.termId}>
-                      <td className={`p-1 text-center border border-border font-medium`} colSpan={3}>
+                      <td className="p-1 text-center border border-border" colSpan={2}></td>
+                      <td className={`p-1 text-center border border-border font-bold ${getGradeColor(term.percentage, isBlackWhite)}`}>
                         {term.percentage.toFixed(1)}%
                       </td>
-                      <td className="p-1 text-center border border-border"></td>
                     </React.Fragment>
                   ))}
                   {hasThreeTerms && currentStudent.subjectAverages && (
@@ -394,16 +384,38 @@ export function ReportCardPreview({
                         const avgMaxSum = filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0);
                         const annualPct = avgMaxSum > 0 ? (avgTotalSum / avgMaxSum) * 100 : 0;
                         return (
-                          <td className={`p-1 text-center border border-border font-bold ${getGradeColor(annualPct, isBlackWhite)}`} colSpan={3}>
-                            {annualPct.toFixed(1)}%
-                          </td>
+                          <>
+                            <td className="p-1 text-center border border-border" colSpan={2}></td>
+                            <td className={`p-1 text-center border border-border font-bold ${getGradeColor(annualPct, isBlackWhite)}`}>
+                              {annualPct.toFixed(1)}%
+                            </td>
+                          </>
                         );
                       })()}
                     </>
                   )}
-                  <td className={`p-1 text-center border border-border font-bold ${getGradeColor(currentStudent.overallPercentage, isBlackWhite)}`}>
-                    {hasThreeTerms ? (currentStudent.annualRank || currentStudent.position) : currentStudent.position}
-                  </td>
+                  <td className="p-1 text-center border border-border"></td>
+                </tr>
+                {/* Rank Row */}
+                <tr className="bg-muted/70 font-semibold">
+                  <td className="p-1 sm:p-2 border border-border font-medium">Rank</td>
+                  <td className="p-1 text-center border border-border" colSpan={3}></td>
+                  {currentStudent.terms.map((term) => (
+                    <React.Fragment key={term.termId}>
+                      <td className="p-1 text-center border border-border" colSpan={2}></td>
+                      <td className="p-1 text-center border border-border font-bold">
+                        {term.termRank || '-'}
+                      </td>
+                    </React.Fragment>
+                  ))}
+                  {hasThreeTerms && (
+                    <>
+                      <td className="p-1 text-center border border-border" colSpan={2}></td>
+                      <td className="p-1 text-center border border-border font-bold">
+                        {currentStudent.annualRank || currentStudent.position}
+                      </td>
+                    </>
+                  )}
                   <td className="p-1 text-center border border-border"></td>
                 </tr>
               </tbody>
@@ -432,12 +444,12 @@ export function ReportCardPreview({
             </div>
           </div>
 
-          {/* Custom Detail - Bottom positions */}
-          {school.customDetail?.text && (school.customDetail.position === 'bottomLeft' || school.customDetail.position === 'bottomRight') && (
-            <div className={`px-3 py-1 text-xs ${school.customDetail.position === 'bottomRight' ? 'text-right' : 'text-left'} ${isBlackWhite ? 'bg-muted' : 'bg-primary/5'}`}>
-              {school.customDetail.text}
+          {/* Custom Details - Bottom positions */}
+          {[...(school.customDetail?.text ? [school.customDetail] : []), ...(school.customDetails || [])].filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight')).map((detail, i) => (
+            <div key={i} className={`px-3 py-1 text-xs ${detail.position === 'bottomRight' ? 'text-right' : 'text-left'} ${isBlackWhite ? 'bg-muted' : 'bg-primary/5'}`}>
+              {detail.text}
             </div>
-          )}
+          ))}
         </div>
 
         {/* Download Single Button */}
