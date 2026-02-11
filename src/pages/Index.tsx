@@ -130,7 +130,7 @@ const Index = () => {
               
               {/* Steps */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-8 sm:mt-12">
-                {steps.map((step, index) => <div key={step.title} className="p-3 sm:p-4 rounded-xl border card-hover animate-fade-up bg-primary mx-px px-[18px] border-accent sm:rounded-3xl shadow-inner" style={{
+                {steps.map((step, index) => <div key={step.title} className="p-3 sm:p-4 rounded-xl border card-hover animate-fade-up mx-px px-[18px] sm:rounded-3xl shadow-inner border-primary-foreground bg-primary-foreground" style={{
                 animationDelay: `${0.3 + index * 0.1}s`
               }}>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center">
@@ -186,8 +186,7 @@ const Index = () => {
         {/* Features Section */}
         {students.length === 0 && <section className="py-12 sm:py-16 bg-muted/30">
             <div className="container px-4">
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-8 sm:mb-12">Why Choose EDUBEL?
-Edubel is a sub-company of BELCOMPANY<span className="gradient-text">EDUBEL</span>?
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-8 sm:mb-12">Why Choose EDUBEL?<span className="gradient-text">EDUBEL</span>?
               </h2>
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                 {[{
