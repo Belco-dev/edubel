@@ -27,9 +27,25 @@ export function MultiFileUpload({ terms, onTermsUpdate }: MultiFileUploadProps) 
 
   const selectedTerms = terms.filter(t => t.selected);
 
+  const MAX_EXCEL_SIZE = 10 * 1024 * 1024; // 10MB
+
   const handleFile = async (file: File, termId: string, type: 'test' | 'exam') => {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
-      setErrors(prev => ({ ...prev, [`${termId}-${type}`]: 'Please upload a valid Excel file' }));
+      setErrors(prev => ({ ...prev, [`${termId}-${type}`]: 'Please upload a valid Excel file (.xlsx or .xls)' }));
+      return;
+    }
+
+    const validMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+    ];
+    if (file.type && !validMimeTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, [`${termId}-${type}`]: 'Invalid file type. Please upload a valid Excel file.' }));
+      return;
+    }
+
+    if (file.size > MAX_EXCEL_SIZE) {
+      setErrors(prev => ({ ...prev, [`${termId}-${type}`]: 'File too large (max 10MB).' }));
       return;
     }
 
