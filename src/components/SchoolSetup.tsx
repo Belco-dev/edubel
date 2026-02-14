@@ -41,7 +41,20 @@ export function SchoolSetup({
     setDragIndex(null);
     setDragOverIndex(null);
   };
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const validateImageFile = (file: File): string | null => {
+    if (!file.type.startsWith('image/')) return 'Please upload a valid image file.';
+    if (file.size > MAX_IMAGE_SIZE) return 'Image too large (max 5MB).';
+    return null;
+  };
+
   const handleLogoUpload = (file: File) => {
+    const error = validateImageFile(file);
+    if (error) {
+      console.warn('Logo upload rejected:', error);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = e => {
       onSchoolDataChange({
@@ -55,7 +68,7 @@ export function SchoolSetup({
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file) {
       handleLogoUpload(file);
     }
   };
