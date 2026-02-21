@@ -7,8 +7,8 @@ export function Footer() {
           <Heart className="fill-secondary animate-pulse w-[20px] h-[20px] bg-destructive-foreground text-destructive" />{' '}
           by <span className="font-semibold text-foreground">Belco / Call and Whatsapp +250799389818 / Buy me a cup of coffee if satisfied. MOMO 1348629</span>
         </p>
-        <a href="mailto:nzirorerabelico@gmail.com" className="inline-flex items-center gap-2 mt-2 text-sm text-primary hover:text-primary/80 transition-colors btn-bounce"> 
-nzirorerabelico@gmail.com<Mail className="h-4 w-4" />
+        <a className="inline-flex items-center gap-2 mt-2 text-sm transition-colors btn-bounce text-green font-serif font-extrabold text-center" href="nzirorerabelico@gmail.com">   
+nzirorerabelico@gmail.com <Mail className="h-4 w-4" />
           nzirorerabelico@gmail.com
         </a>
       </div>
