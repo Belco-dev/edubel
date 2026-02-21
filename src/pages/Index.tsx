@@ -71,12 +71,12 @@ const Index = () => {
 
     // Auto-select detected subjects
     const allSubjects = new Set<string>();
-    terms.forEach(t => {
+    terms.forEach((t) => {
       if (t.testParsedData) {
-        t.testParsedData.detectedSubjects.forEach(sub => allSubjects.add(sub));
+        t.testParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
       }
       if (t.examParsedData) {
-        t.examParsedData.detectedSubjects.forEach(sub => allSubjects.add(sub));
+        t.examParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
       }
     });
     if (allSubjects.size > 0 && selectedSubjects.length === 0) {
@@ -201,7 +201,7 @@ const Index = () => {
               title: 'No Data Saved',
               description: 'Your student data stays on your device. We never store anything.',
               color: 'bg-purple/20 text-purple'
-            }].map(feature => <div key={feature.title} className="p-4 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border card-hover">
+            }].map((feature) => <div key={feature.title} className="p-4 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border card-hover">
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${feature.color} flex items-center justify-center mb-3 sm:mb-4`}>
                       <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
                     </div>
@@ -213,7 +213,7 @@ const Index = () => {
           </section>}
       </main>
 
-      <Footer />
+      <Footer className="my-0 py-0" />
     </div>;
 };
 export default Index;
