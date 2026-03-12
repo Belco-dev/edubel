@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette } from 'lucide-react';
+import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive } from 'lucide-react';
 import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import JSZip from 'jszip';
+import { generateReportCardWorkbook } from '@/lib/excelExporter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

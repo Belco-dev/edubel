@@ -213,7 +213,7 @@ const Index = () => {
           </section>}
       </main>
 
-      <Footer className="my-0 py-0" />
+      <Footer />
     </div>;
 };
 export default Index;
