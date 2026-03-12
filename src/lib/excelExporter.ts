@@ -35,18 +35,16 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
     const row: (string | number)[] = [i + 1, student.fullName];
 
     for (const selectedTerm of selectedTerms) {
-      const term = student.terms.find((t) => t.id === selectedTerm.id) ?? student.terms.find((t) => t.shortName === selectedTerm.shortName);
+      const term =
+        student.terms.find((t) => t.termId === selectedTerm.id) ??
+        student.terms.find((t) => t.shortName === selectedTerm.shortName);
 
       for (const subject of subjects) {
         const mark = term?.subjects.find((m) => m.subject === subject);
         row.push(mark?.total ?? 0);
       }
 
-      row.push(
-        term?.totalMarks ?? 0,
-        Math.round((term?.percentage ?? 0) * 10) / 10,
-        term?.termRank ?? '-'
-      );
+      row.push(term?.totalMarks ?? 0, Math.round((term?.percentage ?? 0) * 10) / 10, term?.termRank ?? '-');
     }
 
     if (hasThreeTerms && student.subjectAverages) {
@@ -62,17 +60,15 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
     width: index === 1 ? 30 : Math.max(String(header).length + 2, 10),
   }));
 
-  const output = await writeXlsxFile(rows, {
+  const output = (await writeXlsxFile(rows as any, {
     sheet: sheetName,
     columns,
-    blob: true,
-  });
+    buffer: true,
+  } as any)) as ArrayBuffer;
 
-  return output instanceof Blob
-    ? output
-    : new Blob([output], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+  return new Blob([output], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
 }
 
 function getSubjects(students: Student[], selectedTerms: TermUpload[]): string[] {
@@ -82,6 +78,6 @@ function getSubjects(students: Student[], selectedTerms: TermUpload[]): string[]
   const firstSelectedTerm = selectedTerms[0];
   if (!firstSelectedTerm) return [];
 
-  const term = firstStudent.terms.find((t) => t.id === firstSelectedTerm.id) ?? firstStudent.terms[0];
+  const term = firstStudent.terms.find((t) => t.termId === firstSelectedTerm.id) ?? firstStudent.terms[0];
   return term?.subjects.map((s) => s.subject) ?? [];
 }
