@@ -89,6 +89,54 @@ export function ReportCardPreview({
     setDownloadingAll(false);
   };
 
+  const handleDownloadZip = async () => {
+    setDownloadingZip(true);
+    setZipProgress(0);
+    try {
+      const zip = new JSZip();
+      const pdfsFolder = zip.folder('PDFs');
+
+      for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const doc = await generateStudentPDF({
+          student,
+          school,
+          totalStudents: students.length,
+          selectedSubjects,
+          terms: selectedTerms,
+          reportCardStyle,
+        });
+        const pdfBlob = doc.output('blob');
+        pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
+        setZipProgress(Math.round(((i + 1) / students.length) * 90));
+      }
+
+      // Add Excel workbook
+      const excelBlob = generateReportCardWorkbook({
+        students,
+        school,
+        selectedSubjects,
+        terms: selectedTerms,
+      });
+      zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
+      setZipProgress(95);
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      setZipProgress(100);
+
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Report_Cards.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to generate ZIP:', error);
+    }
+    setDownloadingZip(false);
+    setZipProgress(0);
+  };
+
   if (students.length === 0) {
     return (
       <Card className="card-hover">
