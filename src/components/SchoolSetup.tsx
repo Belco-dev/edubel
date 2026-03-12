@@ -1,11 +1,16 @@
-import { useState, useRef } from 'react';
-import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2, GripVertical } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2, GripVertical, Save, ShieldCheck } from 'lucide-react';
 import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+
+const STORAGE_KEY = 'edubel_school_data';
+
 interface SchoolSetupProps {
   schoolData: SchoolData;
   onSchoolDataChange: (data: SchoolData) => void;
@@ -18,6 +23,42 @@ export function SchoolSetup({
   const [dragOver, setDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
+
+  const handleSave = useCallback(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(schoolData));
+      toast.success('School information saved to this browser!');
+    } catch {
+      toast.error('Failed to save. Browser storage may be full.');
+    }
+  }, [schoolData]);
+
+  const handleFieldFocus = useCallback(() => {
+    if (hasCheckedStorage) return;
+    setHasCheckedStorage(true);
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        setShowRestoreDialog(true);
+      }
+    } catch { /* ignore */ }
+  }, [hasCheckedStorage]);
+
+  const handleRestore = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as SchoolData;
+        onSchoolDataChange(parsed);
+        toast.success('School information restored!');
+      }
+    } catch {
+      toast.error('Failed to restore saved data.');
+    }
+    setShowRestoreDialog(false);
+  }, [onSchoolDataChange]);
   const handleFieldDragStart = (index: number) => {
     setDragIndex(index);
   };
@@ -133,7 +174,7 @@ export function SchoolSetup({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" onFocus={handleFieldFocus}>
           {/* Optional Ministry/Header Field */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="ministryName" className="flex items-center gap-2">
@@ -313,6 +354,38 @@ export function SchoolSetup({
 
           {(!schoolData.customDetails || schoolData.customDetails.length === 0) && !schoolData.customDetail?.text && <p className="text-xs text-muted-foreground italic text-center py-2">Click "Add Field" to add custom information to your report cards</p>}
         </div>
+
+        {/* Save Button */}
+        <div className="flex items-center gap-3 pt-4 border-t border-border">
+          <Button onClick={handleSave} className="bg-gradient-primary text-primary-foreground">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
+          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Stored only on this browser. Your info is safe.
+          </span>
+        </div>
+
+        {/* Restore Dialog */}
+        <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Saved School Info Found</DialogTitle>
+              <DialogDescription>
+                We found saved school information from your last visit. Would you like to use it?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
+                No, start fresh
+              </Button>
+              <Button onClick={handleRestore} className="bg-gradient-primary text-primary-foreground">
+                Yes, use saved info
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>;
 }
