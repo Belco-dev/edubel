@@ -9,6 +9,7 @@ import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { mergeStudentsFromTerms } from '@/lib/studentMerger';
 import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle } from '@/types/reportCard';
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList } from 'lucide-react';
+import { WelcomeModal } from '@/components/WelcomeModal';
 const defaultTerms: TermUpload[] = [{
   id: 'term1',
   name: 'Term 1',
@@ -101,6 +102,7 @@ const Index = () => {
     description: 'Get report cards'
   }];
   return <div className="min-h-screen flex flex-col bg-background">
+      <WelcomeModal />
       <Header theme={theme} onThemeChange={setTheme} />
       
       <main className="flex-1">
