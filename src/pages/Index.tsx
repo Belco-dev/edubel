@@ -102,6 +102,7 @@ const Index = () => {
     description: 'Get report cards'
   }];
   return <div className="min-h-screen flex flex-col bg-background">
+      <WelcomeModal />
       <Header theme={theme} onThemeChange={setTheme} />
       
       <main className="flex-1">
