@@ -64,7 +64,7 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
     sheet: sheetName,
     columns,
     buffer: true,
-  } as any)) as ArrayBuffer;
+  } as any)) as unknown as ArrayBuffer;
 
   return new Blob([output], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
