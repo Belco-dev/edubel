@@ -39,6 +39,8 @@ export function ReportCardPreview({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadingZip, setDownloadingZip] = useState(false);
+  const [zipProgress, setZipProgress] = useState(0);
 
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
