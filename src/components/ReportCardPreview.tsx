@@ -217,6 +217,27 @@ export function ReportCardPreview({
           )}
         </Button>
 
+        {/* Download ZIP Button */}
+        <Button 
+          onClick={handleDownloadZip} 
+          disabled={downloadingZip || downloadingAll}
+          variant="outline"
+          className="w-full btn-bounce"
+          size="lg"
+        >
+          {downloadingZip ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              Creating ZIP... {zipProgress}%
+            </>
+          ) : (
+            <>
+              <Archive className="h-5 w-5 mr-2" />
+              Download ZIP (PDFs + Excel)
+            </>
+          )}
+        </Button>
+
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
           <Button
