@@ -112,7 +112,7 @@ export function ReportCardPreview({
       }
 
       // Add Excel workbook
-      const excelBlob = generateReportCardWorkbook({
+      const excelBlob = await generateReportCardWorkbook({
         students,
         school,
         selectedSubjects,
