@@ -354,6 +354,38 @@ export function SchoolSetup({
 
           {(!schoolData.customDetails || schoolData.customDetails.length === 0) && !schoolData.customDetail?.text && <p className="text-xs text-muted-foreground italic text-center py-2">Click "Add Field" to add custom information to your report cards</p>}
         </div>
+
+        {/* Save Button */}
+        <div className="flex items-center gap-3 pt-4 border-t border-border">
+          <Button onClick={handleSave} className="bg-gradient-primary text-primary-foreground">
+            <Save className="h-4 w-4 mr-2" />
+            Save
+          </Button>
+          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+            <ShieldCheck className="h-3.5 w-3.5" />
+            Stored only on this browser. Your info is safe.
+          </span>
+        </div>
+
+        {/* Restore Dialog */}
+        <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Saved School Info Found</DialogTitle>
+              <DialogDescription>
+                We found saved school information from your last visit. Would you like to use it?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
+                No, start fresh
+              </Button>
+              <Button onClick={handleRestore} className="bg-gradient-primary text-primary-foreground">
+                Yes, use saved info
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>;
 }
