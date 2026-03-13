@@ -126,17 +126,24 @@ export function SchoolSetup({
       } as CustomDetail
     });
   };
+  const [sectionOpen, setSectionOpen] = useState(true);
+
   return <Card className="card-hover overflow-hidden">
-      <CardHeader className="bg-gradient-primary text-primary-foreground">
-        <CardTitle className="flex items-center gap-2 font-display">
-          <Building2 className="h-5 w-5" />
-          School Information
-        </CardTitle>
-        <CardDescription className="text-primary-foreground/80">
-          Enter your school details for the report cards
-        </CardDescription>
+      <CardHeader className="bg-gradient-primary text-primary-foreground cursor-pointer select-none" onClick={() => setSectionOpen(!sectionOpen)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 font-display">
+              <Building2 className="h-5 w-5" />
+              School Information
+            </CardTitle>
+            <CardDescription className="text-primary-foreground/80">
+              Enter your school details for the report cards
+            </CardDescription>
+          </div>
+          <ChevronDown className={`h-5 w-5 text-primary-foreground transition-transform duration-200 ${sectionOpen ? 'rotate-180' : ''}`} />
+        </div>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
+      {sectionOpen && <CardContent className="p-6 space-y-6">
         {/* Logo Upload */}
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
