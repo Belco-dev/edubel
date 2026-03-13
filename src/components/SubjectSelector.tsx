@@ -183,7 +183,7 @@ export function SubjectSelector({ selectedSubjects, onSubjectsChange }: SubjectS
             );
           })}
         </div>
-      </CardContent>
+      </CardContent>}
     </Card>
   );
 }
