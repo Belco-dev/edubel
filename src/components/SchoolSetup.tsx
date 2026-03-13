@@ -393,6 +393,6 @@ export function SchoolSetup({
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </CardContent>
+      </CardContent>}
     </Card>;
 }
