@@ -187,13 +187,37 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Features Section */}
-        {students.length === 0 && <section className="py-12 sm:py-16 bg-muted/30">
-            <div className="container px-4">
-              <h2 className="text-2xl sm:text-3xl font-display font-bold text-center mb-8 sm:mb-12">Why Choose EDUBEL?<span className="gradient-text">EDUBEL</span>?
-              </h2>
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                {[{
+        {/* Features Section - Collapsible */}
+        {students.length === 0 && <FeaturesSection />}
+
+        {/* FAQ Section */}
+        <FAQSection />
+      </main>
+
+      {/* Developer Bio */}
+      <DeveloperBio />
+      <Footer />
+    </div>;
+};
+
+function FeaturesSection() {
+  const [open, setOpen] = useState(true);
+  return (
+    <section className="py-12 sm:py-16 bg-muted/30">
+      <div className="container px-4">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full flex items-center justify-center gap-2 mb-8 sm:mb-12 group"
+        >
+          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center">
+            Why Choose <span className="gradient-text">EDUBEL</span>?
+          </h2>
+          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </button>
+        {open && (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            {[{
               title: 'Multi-Term Support',
               description: 'Generate reports with MAX, TEST, EXAM, and TOTAL columns for multiple terms.',
               color: 'bg-green/20 text-green'
@@ -205,19 +229,19 @@ const Index = () => {
               title: 'No Data Saved',
               description: 'Your student data stays on your device. We never store anything.',
               color: 'bg-purple/20 text-purple'
-            }].map((feature) => <div key={feature.title} className="p-4 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border card-hover">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${feature.color} flex items-center justify-center mb-3 sm:mb-4`}>
-                      <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-                    </div>
-                    <h3 className="font-display font-semibold text-base sm:text-lg mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground text-xs sm:text-sm">{feature.description}</p>
-                  </div>)}
+            }].map((feature) => (
+              <div key={feature.title} className="p-4 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border card-hover">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${feature.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
+                </div>
+                <h3 className="font-display font-semibold text-base sm:text-lg mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm">{feature.description}</p>
               </div>
-            </div>
-          </section>}
-      </main>
-
-      <Footer />
-    </div>;
-};
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 export default Index;
