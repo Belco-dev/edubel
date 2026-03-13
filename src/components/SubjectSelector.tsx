@@ -65,9 +65,11 @@ export function SubjectSelector({ selectedSubjects, onSubjectsChange }: SubjectS
     onSubjectsChange([]);
   };
 
+  const [sectionOpen, setSectionOpen] = useState(true);
+
   return (
     <Card className="card-hover overflow-hidden">
-      <CardHeader className="bg-gradient-secondary text-secondary-foreground">
+      <CardHeader className="bg-gradient-secondary text-secondary-foreground cursor-pointer select-none" onClick={() => setSectionOpen(!sectionOpen)}>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 font-display">
@@ -78,12 +80,15 @@ export function SubjectSelector({ selectedSubjects, onSubjectsChange }: SubjectS
               Choose subjects for the report cards
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="bg-background/20 text-secondary-foreground">
-            {selectedSubjects.length} selected
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="bg-background/20 text-secondary-foreground">
+              {selectedSubjects.length} selected
+            </Badge>
+            <ChevronDown className={`h-5 w-5 text-secondary-foreground transition-transform duration-200 ${sectionOpen ? 'rotate-180' : ''}`} />
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      {sectionOpen && <CardContent className="p-6">
         <div className="flex gap-2 mb-4">
           <Button 
             variant="outline" 
@@ -178,7 +183,7 @@ export function SubjectSelector({ selectedSubjects, onSubjectsChange }: SubjectS
             );
           })}
         </div>
-      </CardContent>
+      </CardContent>}
     </Card>
   );
 }
