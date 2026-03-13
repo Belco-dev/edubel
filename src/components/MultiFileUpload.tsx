@@ -125,6 +125,11 @@ export function MultiFileUpload({ terms, onTermsUpdate }: MultiFileUploadProps) 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Privacy badge */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2 border border-border">
+          <span className="text-base">🔒</span>
+          <span>Data stays on this device — files are processed locally and never uploaded.</span>
+        </div>
         {/* Format Guide */}
         <Collapsible open={showFormat} onOpenChange={setShowFormat}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm text-primary hover:underline">
