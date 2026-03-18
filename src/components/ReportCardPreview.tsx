@@ -7,7 +7,6 @@ import { generateReportCardWorkbook } from '@/lib/excelExporter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 
@@ -29,12 +28,7 @@ function getGradeColor(percentage: number, isBlackWhite: boolean): string {
 }
 
 export function ReportCardPreview({ 
-  students, 
-  school, 
-  selectedSubjects, 
-  terms,
-  reportCardStyle,
-  onStyleChange 
+  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange 
 }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -47,19 +41,12 @@ export function ReportCardPreview({
   const isBlackWhite = reportCardStyle === 'blackWhite';
   const hasThreeTerms = selectedTerms.length === 3;
 
-  // Check if any term has test data
-  const hasAnyTestData = selectedTerms.some(t => t.testParsedData);
-
   const handleDownloadSingle = async (student: Student) => {
     setDownloading(student.id);
     try {
       const doc = await generateStudentPDF({
-        student,
-        school,
-        totalStudents: students.length,
-        selectedSubjects,
-        terms: selectedTerms,
-        reportCardStyle,
+        student, school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -73,12 +60,8 @@ export function ReportCardPreview({
     try {
       for (const student of students) {
         const doc = await generateStudentPDF({
-          student,
-          school,
-          totalStudents: students.length,
-          selectedSubjects,
-          terms: selectedTerms,
-          reportCardStyle,
+          student, school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -99,24 +82,16 @@ export function ReportCardPreview({
       for (let i = 0; i < students.length; i++) {
         const student = students[i];
         const doc = await generateStudentPDF({
-          student,
-          school,
-          totalStudents: students.length,
-          selectedSubjects,
-          terms: selectedTerms,
-          reportCardStyle,
+          student, school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle,
         });
         const pdfBlob = doc.output('blob');
         pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
         setZipProgress(Math.round(((i + 1) / students.length) * 90));
       }
 
-      // Add Excel workbook
       const excelBlob = await generateReportCardWorkbook({
-        students,
-        school,
-        selectedSubjects,
-        terms: selectedTerms,
+        students, school, selectedSubjects, terms: selectedTerms,
       });
       zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
       setZipProgress(95);
@@ -153,14 +128,12 @@ export function ReportCardPreview({
     );
   }
 
-  // Get all subjects from first term
   const allSubjects = currentStudent.terms[0]?.subjects || [];
   const filteredSubjects = allSubjects.filter(s => 
     selectedSubjects.length === 0 || selectedSubjects.includes(s.subject)
   );
 
-  // Get max marks from first subject of first term (should be same across all)
-  const firstSubject = filteredSubjects[0];
+  const numStudents = school.numberOfStudents || students.length;
 
   return (
     <Card className="card-hover overflow-hidden">
@@ -196,7 +169,6 @@ export function ReportCardPreview({
           />
         </div>
 
-
         {/* Download All Button */}
         <Button 
           onClick={handleDownloadAll} 
@@ -205,15 +177,9 @@ export function ReportCardPreview({
           size="lg"
         >
           {downloadingAll ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Downloading All...
-            </>
+            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Downloading All...</>
           ) : (
-            <>
-              <FileDown className="h-5 w-5 mr-2" />
-              Download All ({students.length})
-            </>
+            <><FileDown className="h-5 w-5 mr-2" /> Download All ({students.length})</>
           )}
         </Button>
 
@@ -221,45 +187,27 @@ export function ReportCardPreview({
         <Button 
           onClick={handleDownloadZip} 
           disabled={downloadingZip || downloadingAll}
-          variant="outline"
-          className="w-full btn-bounce"
-          size="lg"
+          variant="outline" className="w-full btn-bounce" size="lg"
         >
           {downloadingZip ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Creating ZIP... {zipProgress}%
-            </>
+            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Creating ZIP... {zipProgress}%</>
           ) : (
-            <>
-              <Archive className="h-5 w-5 mr-2" />
-              Download ZIP (PDFs + Excel)
-            </>
+            <><Archive className="h-5 w-5 mr-2" /> Download ZIP (PDFs + Excel)</>
           )}
         </Button>
 
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
-          <Button
-            variant="ghost"
-            size="sm"
+          <Button variant="ghost" size="sm"
             onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
-            disabled={currentIndex === 0}
-            className="btn-bounce"
-          >
+            disabled={currentIndex === 0} className="btn-bounce">
             <ChevronLeft className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">Previous</span>
           </Button>
-          <span className="text-xs sm:text-sm font-medium">
-            {currentIndex + 1} / {students.length}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
+          <span className="text-xs sm:text-sm font-medium">{currentIndex + 1} / {students.length}</span>
+          <Button variant="ghost" size="sm"
             onClick={() => setCurrentIndex(Math.min(students.length - 1, currentIndex + 1))}
-            disabled={currentIndex === students.length - 1}
-            className="btn-bounce"
-          >
+            disabled={currentIndex === students.length - 1} className="btn-bounce">
             <span className="hidden sm:inline">Next</span>
             <ChevronRight className="h-4 w-4 sm:ml-1" />
           </Button>
@@ -267,7 +215,12 @@ export function ReportCardPreview({
 
         {/* Report Card Preview */}
         <div className={`border-2 rounded-2xl overflow-hidden ${isBlackWhite ? 'border-foreground bg-background' : 'border-border bg-card'} report-card`}>
-          {/* Ministry/Header at the very top */}
+          {/* Number of students */}
+          <div className="px-3 py-1 text-xs text-muted-foreground">
+            Number of students {numStudents}
+          </div>
+
+          {/* Ministry/Header */}
           {school.ministryName && (
             <div className={`px-3 py-1 text-center text-xs font-semibold ${isBlackWhite ? 'bg-muted' : 'bg-primary/10'}`}>
               {school.ministryName}
@@ -290,11 +243,8 @@ export function ReportCardPreview({
                 <p className={`text-xs sm:text-sm ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>Contact: {school.contact || 'N/A'}</p>
               </div>
               {school.logo && (
-                <img 
-                  src={school.logo} 
-                  alt="School Logo" 
-                  className={`h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg p-1 flex-shrink-0 ${isBlackWhite ? 'bg-muted' : 'bg-background/20'}`}
-                />
+                <img src={school.logo} alt="School Logo" 
+                  className={`h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg p-1 flex-shrink-0 ${isBlackWhite ? 'bg-muted' : 'bg-background/20'}`} />
               )}
             </div>
             <div className="text-center mt-2">
@@ -311,9 +261,11 @@ export function ReportCardPreview({
                 <span className="text-xs sm:text-sm text-muted-foreground">Student Name</span>
                 <p className="font-semibold text-base sm:text-lg">{currentStudent.fullName}</p>
               </div>
+              <div>
+                <span className="text-xs sm:text-sm text-muted-foreground">Class Teacher</span>
+                <p className="font-semibold text-sm">{school.classTeacher || '—'}</p>
+              </div>
             </div>
-            
-            {/* Conduct Marks - Above Table */}
             <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
               <span className="font-medium text-sm">Conduct:</span>
               <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
@@ -322,15 +274,15 @@ export function ReportCardPreview({
             </div>
           </div>
 
-          {/* Marks Table - New format with MAX columns first, per-term rank, and averages for 3-term */}
+          {/* Marks Table with Rank column per term */}
           <div className="p-2 sm:p-4 overflow-x-auto">
             <table className="w-full text-xs sm:text-sm border-collapse min-w-[500px]">
               <thead>
-                <tr className={isBlackWhite ? 'bg-muted' : 'bg-muted'}>
+                <tr className="bg-muted">
                   <th className="text-left p-1 sm:p-2 font-semibold border border-border" rowSpan={2}>SUBJECTS</th>
                   <th className="text-center p-1 font-semibold border border-border" colSpan={3}>MAX</th>
-                  {selectedTerms.map((term) => (
-                    <th key={term.id} className="text-center p-1 font-semibold border border-border" colSpan={3}>
+                  {selectedTerms.map(term => (
+                    <th key={term.id} className="text-center p-1 font-semibold border border-border" colSpan={4}>
                       {term.shortName}
                     </th>
                   ))}
@@ -343,11 +295,12 @@ export function ReportCardPreview({
                   <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>
                   <th className="text-center p-1 font-medium border border-border text-xs">EX</th>
                   <th className="text-center p-1 font-medium border border-border text-xs">TOT</th>
-                  {selectedTerms.map((term) => (
+                  {selectedTerms.map(term => (
                     <React.Fragment key={term.id}>
                       <th className="text-center p-1 font-medium border border-border text-xs">TEST</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">EX</th>
                       <th className="text-center p-1 font-medium border border-border text-xs">TOT</th>
+                      <th className="text-center p-1 font-medium border border-border text-xs">Rank</th>
                     </React.Fragment>
                   ))}
                   {hasThreeTerms && (
@@ -360,33 +313,25 @@ export function ReportCardPreview({
                 </tr>
               </thead>
               <tbody>
-                {filteredSubjects.map((subjectData) => {
+                {filteredSubjects.map(subjectData => {
                   const avgData = hasThreeTerms ? currentStudent.subjectAverages?.find(a => a.subject === subjectData.subject) : null;
                   return (
                     <tr key={subjectData.subject} className="hover:bg-muted/30 transition-colors">
                       <td className="p-1 sm:p-2 font-medium border border-border">{subjectData.subject}</td>
-                      {/* MAX columns - from first term or any available */}
                       <td className="p-1 text-center border border-border">{subjectData.maxMtt || '-'}</td>
                       <td className="p-1 text-center border border-border">{subjectData.maxExam || '-'}</td>
                       <td className="p-1 text-center border border-border font-medium">{subjectData.maxTotal || '-'}</td>
-                      {/* Per-term marks with rank placeholder */}
-                      {currentStudent.terms.map((term) => {
+                      {currentStudent.terms.map(term => {
                         const mark = term.subjects.find(s => s.subject === subjectData.subject);
                         return (
                           <React.Fragment key={term.termId}>
-                            <td className="p-1 text-center border border-border">
-                              {mark && mark.mtt > 0 ? mark.mtt : '-'}
-                            </td>
-                            <td className="p-1 text-center border border-border">
-                              {mark && mark.exam > 0 ? mark.exam : '-'}
-                            </td>
-                            <td className="p-1 text-center border border-border font-medium">
-                              {mark?.total || '-'}
-                            </td>
+                            <td className="p-1 text-center border border-border">{mark && mark.mtt > 0 ? mark.mtt : '-'}</td>
+                            <td className="p-1 text-center border border-border">{mark && mark.exam > 0 ? mark.exam : '-'}</td>
+                            <td className="p-1 text-center border border-border font-medium">{mark?.total || '-'}</td>
+                            <td className="p-1 text-center border border-border text-xs">{mark?.rank || '-'}</td>
                           </React.Fragment>
                         );
                       })}
-                      {/* Average columns for 3 terms */}
                       {hasThreeTerms && (
                         <>
                           <td className="p-1 text-center border border-border">{avgData?.avgTest || '-'}</td>
@@ -398,10 +343,9 @@ export function ReportCardPreview({
                     </tr>
                   );
                 })}
-                {/* Total Row with per-term ranks */}
+                {/* Total Row */}
                 <tr className="bg-muted font-semibold">
                   <td className="p-1 sm:p-2 border border-border">Total</td>
-                  {/* MAX totals */}
                   <td className="p-1 text-center border border-border">
                     {filteredSubjects.reduce((sum, s) => sum + (s.maxMtt || 0), 0) || '-'}
                   </td>
@@ -411,7 +355,7 @@ export function ReportCardPreview({
                   <td className="p-1 text-center border border-border">
                     {filteredSubjects.reduce((sum, s) => sum + (s.maxTotal || 0), 0) || '-'}
                   </td>
-                  {currentStudent.terms.map((term) => {
+                  {currentStudent.terms.map(term => {
                     const termMttTotal = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
                     const termExamTotal = term.subjects.reduce((sum, s) => sum + s.exam, 0);
                     return (
@@ -419,10 +363,10 @@ export function ReportCardPreview({
                         <td className="p-1 text-center border border-border">{termMttTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{termExamTotal || '-'}</td>
                         <td className="p-1 text-center border border-border">{term.totalMarks}</td>
+                        <td className="p-1 text-center border border-border"></td>
                       </React.Fragment>
                     );
                   })}
-                  {/* Average totals for 3 terms */}
                   {hasThreeTerms && currentStudent.subjectAverages && (
                     <>
                       <td className="p-1 text-center border border-border">
@@ -442,12 +386,13 @@ export function ReportCardPreview({
                 <tr className="bg-muted/50">
                   <td className="p-1 sm:p-2 border border-border font-medium">Percentage</td>
                   <td className="p-1 text-center border border-border" colSpan={3}></td>
-                  {currentStudent.terms.map((term) => (
+                  {currentStudent.terms.map(term => (
                     <React.Fragment key={term.termId}>
                       <td className="p-1 text-center border border-border" colSpan={2}></td>
                       <td className={`p-1 text-center border border-border font-bold ${getGradeColor(term.percentage, isBlackWhite)}`}>
                         {term.percentage.toFixed(1)}%
                       </td>
+                      <td className="p-1 text-center border border-border"></td>
                     </React.Fragment>
                   ))}
                   {hasThreeTerms && currentStudent.subjectAverages && (
@@ -473,9 +418,9 @@ export function ReportCardPreview({
                 <tr className="bg-muted/70 font-semibold">
                   <td className="p-1 sm:p-2 border border-border font-medium">Rank</td>
                   <td className="p-1 text-center border border-border" colSpan={3}></td>
-                  {currentStudent.terms.map((term) => (
+                  {currentStudent.terms.map(term => (
                     <React.Fragment key={term.termId}>
-                      <td className="p-1 text-center border border-border" colSpan={2}></td>
+                      <td className="p-1 text-center border border-border" colSpan={3}></td>
                       <td className="p-1 text-center border border-border font-bold">
                         {term.termRank || '-'}
                       </td>
@@ -495,9 +440,9 @@ export function ReportCardPreview({
             </table>
           </div>
 
-          {/* Observations - Blank for teacher handwriting */}
-          <div className="mx-2 sm:mx-4 mb-3">
-            <div className={`border ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>
+          {/* Observations box - same width as table */}
+          <div className="px-2 sm:px-4 mb-3">
+            <div className={`border ${isBlackWhite ? 'border-foreground' : 'border-border'} w-full`}>
               <div className="grid grid-cols-2">
                 <div className={`border-r p-2 ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>
                   <span className="text-xs font-semibold block mb-1">Observations</span>
@@ -529,19 +474,12 @@ export function ReportCardPreview({
         <Button 
           onClick={() => handleDownloadSingle(currentStudent)} 
           disabled={downloading === currentStudent.id}
-          variant="outline"
-          className="w-full btn-bounce"
+          variant="outline" className="w-full btn-bounce"
         >
           {downloading === currentStudent.id ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Generating PDF...
-            </>
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating PDF...</>
           ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Download {currentStudent.fullName}'s Report Card
-            </>
+            <><Download className="h-4 w-4 mr-2" /> Download {currentStudent.fullName}'s Report Card</>
           )}
         </Button>
       </CardContent>

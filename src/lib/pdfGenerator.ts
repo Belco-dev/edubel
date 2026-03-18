@@ -17,8 +17,9 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const isBlackWhite = reportCardStyle === 'blackWhite';
+  const margin = 10;
+  const totalAvailWidth = pageWidth - margin * 2;
   
-  // Colors based on style
   const primaryColor: [number, number, number] = isBlackWhite ? [0, 0, 0] : [20, 184, 166];
   const headerBg: [number, number, number] = isBlackWhite ? [245, 245, 245] : [240, 253, 250];
   const textWhite: [number, number, number] = [255, 255, 255];
@@ -26,13 +27,21 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   let currentY = 0;
   
-  // Ministry/Header at the very top (optional)
+  // Number of students at the very top
+  const numStudents = school.numberOfStudents || totalStudents;
+  doc.setFontSize(8);
+  doc.setTextColor(...textBlack);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Number of students ${numStudents}`, margin, 6);
+  currentY = 8;
+  
+  // Ministry/Header
   if (school.ministryName) {
     doc.setFontSize(9);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'bold');
-    doc.text(school.ministryName, pageWidth / 2, 8, { align: 'center' });
-    currentY = 12;
+    doc.text(school.ministryName, pageWidth / 2, currentY + 4, { align: 'center' });
+    currentY += 8;
   }
   
   // Custom Details - Top positions
@@ -42,7 +51,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'normal');
-    const xPos = detail.position === 'topRight' ? pageWidth - 10 : 10;
+    const xPos = detail.position === 'topRight' ? pageWidth - margin : margin;
     const align = detail.position === 'topRight' ? 'right' : 'left';
     const yPos = currentY > 0 ? currentY + 4 : 8;
     doc.text(detail.text, xPos, yPos, { align: align as 'left' | 'right' });
@@ -73,12 +82,12 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(school.name || 'School Name', 10, headerY + 14);
+  doc.text(school.name || 'School Name', margin, headerY + 14);
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(school.address || 'School Address', 10, headerY + 21);
-  doc.text(`Contact: ${school.contact || 'N/A'}`, 10, headerY + 27);
+  doc.text(school.address || 'School Address', margin, headerY + 21);
+  doc.text(`Contact: ${school.contact || 'N/A'}`, margin, headerY + 27);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   const termDisplay = school.className ? `${school.className} - ${school.termName || 'Term Report Card'}` : (school.termName || 'Term Report Card');
@@ -89,7 +98,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // Student Info
   doc.setTextColor(...textBlack);
   doc.setFillColor(...headerBg);
-  doc.roundedRect(10, currentY, pageWidth - 20, 18, 2, 2, 'F');
+  doc.roundedRect(margin, currentY, totalAvailWidth, 18, 2, 2, 'F');
   
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -109,27 +118,25 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   currentY += 22;
   
-  // Build header rows - New format without vertical rank column
+  // Build table
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
-  const hasThreeTerms = selectedTerms.length === 3;
+  const numTerms = selectedTerms.length;
+  const hasThreeTerms = numTerms === 3;
   
-  // Build header rows
+  // Header rows - with Rank column per term
   const headerRow1: string[] = ['SUBJECTS', 'MAX', '', ''];
   const headerRow2: string[] = ['', 'TEST', 'EX', 'TOT'];
   
-  // Add term columns (no rank column per term in header)
   selectedTerms.forEach(t => {
-    headerRow1.push(t.shortName, '', '');
-    headerRow2.push('TEST', 'EX', 'TOT');
+    headerRow1.push(t.shortName, '', '', '');
+    headerRow2.push('TEST', 'EX', 'TOT', 'Rank');
   });
   
-  // Add average columns if 3 terms
   if (hasThreeTerms) {
     headerRow1.push('AVERAGE', '', '');
     headerRow2.push('TEST', 'EX', 'TOT');
   }
   
-  // Comments column
   headerRow1.push('Comments');
   headerRow2.push('');
   
@@ -157,10 +164,10 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
         mark && mark.mtt > 0 ? mark.mtt : '-',
         mark && mark.exam > 0 ? mark.exam : '-',
         mark?.total || '-',
+        mark?.rank || '-',
       );
     });
     
-    // Add averages if 3 terms
     if (hasThreeTerms) {
       const avgData = student.subjectAverages?.find(a => a.subject === subjectData.subject);
       row.push(
@@ -185,7 +192,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   student.terms.forEach(term => {
     const termMtt = term.subjects.reduce((sum, s) => sum + s.mtt, 0);
     const termExam = term.subjects.reduce((sum, s) => sum + s.exam, 0);
-    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks);
+    totalRow.push(termMtt || '-', termExam || '-', term.totalMarks, '');
   });
   
   if (hasThreeTerms) {
@@ -202,11 +209,11 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   totalRow.push('');
   tableData.push(totalRow);
   
-  // Percentage row - percentage under TOT column for each term
+  // Percentage row
   const pctRow: (string | number)[] = ['Percentage', '', '', ''];
   
   student.terms.forEach(term => {
-    pctRow.push('', '', `${term.percentage.toFixed(1)}%`);
+    pctRow.push('', '', `${term.percentage.toFixed(1)}%`, '');
   });
   
   if (hasThreeTerms) {
@@ -219,11 +226,11 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   pctRow.push('');
   tableData.push(pctRow);
   
-  // Rank row - rank under TOT column for each term
+  // Rank row - term rank goes in Rank column
   const rankRow: (string | number)[] = ['Rank', '', '', ''];
   
   student.terms.forEach(term => {
-    rankRow.push('', '', term.termRank || '-');
+    rankRow.push('', '', '', term.termRank || '-');
   });
   
   if (hasThreeTerms) {
@@ -233,43 +240,40 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   rankRow.push('');
   tableData.push(rankRow);
   
-  // Calculate column widths dynamically
-  const numTerms = selectedTerms.length;
-  const subjectColWidth = hasThreeTerms ? 22 : 28;
-  const maxColWidth = 7;
-  const termColWidth = 7;
-  const rankColWidth = 8;
-  const commentsColWidth = hasThreeTerms ? 12 : 18;
+  // Calculate column widths to fill the full available width
+  // Columns: SUBJECTS(1) + MAX(3) + per-term(4: TEST,EX,TOT,Rank) + AVG(3 if 3 terms) + Comments(1)
+  const numCols = 4 + numTerms * 4 + (hasThreeTerms ? 3 : 0) + 1;
+  
+  // Give proportional widths
+  const subjectPct = 0.14;
+  const commentsPct = 0.07;
+  const subjectColWidth = totalAvailWidth * subjectPct;
+  const commentsColWidth = totalAvailWidth * commentsPct;
+  const remainingWidth = totalAvailWidth - subjectColWidth - commentsColWidth;
+  const numDataCols = numCols - 2; // all except SUBJECTS and Comments
+  const dataColWidth = remainingWidth / numDataCols;
   
   const columnStyles: Record<number, { cellWidth: number; halign?: 'left' | 'center' | 'right' }> = {
     0: { cellWidth: subjectColWidth, halign: 'left' },
-    1: { cellWidth: maxColWidth, halign: 'center' },
-    2: { cellWidth: maxColWidth, halign: 'center' },
-    3: { cellWidth: maxColWidth, halign: 'center' },
   };
   
-  let colIdx = 4;
-  for (let i = 0; i < numTerms; i++) {
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
+  for (let i = 1; i < numCols - 1; i++) {
+    columnStyles[i] = { cellWidth: dataColWidth, halign: 'center' };
   }
   
-  if (hasThreeTerms) {
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-    columnStyles[colIdx++] = { cellWidth: termColWidth, halign: 'center' };
-  }
+  columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
   
-  columnStyles[colIdx] = { cellWidth: commentsColWidth, halign: 'left' };
+  const fontSize = hasThreeTerms ? 5 : (numTerms === 2 ? 5.5 : 6);
   
   autoTable(doc, {
     startY: currentY,
     head: [tableHeaders[0], tableHeaders[1]],
     body: tableData,
     theme: 'grid',
+    tableWidth: totalAvailWidth,
+    margin: { left: margin, right: margin },
     styles: { 
-      fontSize: hasThreeTerms ? 5 : 6, 
+      fontSize, 
       cellPadding: 1, 
       lineColor: [0, 0, 0], 
       lineWidth: 0.2 
@@ -279,21 +283,18 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       textColor: [0, 0, 0], 
       fontStyle: 'bold', 
       halign: 'center', 
-      fontSize: hasThreeTerms ? 5 : 6 
+      fontSize 
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
     didParseCell: (data) => {
-      // Bold the total row (3rd from end)
       if (data.row.index === tableData.length - 3) {
         data.cell.styles.fontStyle = 'bold';
       }
-      // Style percentage row (2nd from end)
       if (data.row.index === tableData.length - 2) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];
       }
-      // Style rank row (last)
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [230, 230, 230] : [245, 245, 245];
@@ -303,26 +304,22 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   
-  // Observations and Signatures box
+  // Observations and Signatures box - same width as table
   const boxY = finalY + 5;
   const boxHeight = 35;
   
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
-  doc.rect(10, boxY, pageWidth - 20, boxHeight);
+  doc.rect(margin, boxY, totalAvailWidth, boxHeight);
   
-  // Vertical divider
-  const dividerX = 10 + (pageWidth - 20) / 2;
+  const dividerX = margin + totalAvailWidth / 2;
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
+  doc.line(dividerX, boxY + boxHeight / 2, margin + totalAvailWidth, boxY + boxHeight / 2);
   
-  // Horizontal divider for signatures
-  doc.line(dividerX, boxY + boxHeight / 2, pageWidth - 10, boxY + boxHeight / 2);
-  
-  // Labels
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text('Observations', 12, boxY + 6);
+  doc.text('Observations', margin + 2, boxY + 6);
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
@@ -332,7 +329,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   bottomDetails.forEach(detail => {
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
-    const xPos = detail.position === 'bottomRight' ? pageWidth - 10 : 10;
+    const xPos = detail.position === 'bottomRight' ? pageWidth - margin : margin;
     const align = detail.position === 'bottomRight' ? 'right' : 'left';
     doc.text(detail.text, xPos, bottomY, { align: align as 'left' | 'right' });
     bottomY += 5;
