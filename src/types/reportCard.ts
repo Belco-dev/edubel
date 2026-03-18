@@ -15,6 +15,8 @@ export interface SchoolData {
   customDetails?: CustomDetail[];
   classTeacher: string;
   ministryName?: string;
+  numberOfStudents?: number;
+  fieldOrder?: string[];
 }
 
 export interface Subject {
@@ -25,13 +27,13 @@ export interface Subject {
 
 export interface SubjectMark {
   subject: string;
-  mtt: number; // Midterm Test marks
-  exam: number; // End of term exam marks
-  total: number; // Total (mtt + exam)
-  maxMtt: number; // Max marks for TEST
-  maxExam: number; // Max marks for EXAM
-  maxTotal: number; // Max total (maxMtt + maxExam)
-  rank?: number; // Subject rank among all students
+  mtt: number;
+  exam: number;
+  total: number;
+  maxMtt: number;
+  maxExam: number;
+  maxTotal: number;
+  rank?: number;
 }
 
 export interface TermData {
@@ -42,7 +44,7 @@ export interface TermData {
   totalMarks: number;
   maxMarks: number;
   percentage: number;
-  termRank?: number; // Rank for this specific term
+  termRank?: number;
 }
 
 export interface AverageData {
@@ -61,11 +63,10 @@ export interface Student {
   grandMax: number;
   overallPercentage: number;
   position: number;
-  annualRank?: number; // Annual rank based on average of 3 terms
+  annualRank?: number;
   subjectAverages?: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[];
 }
 
-// Each term has separate test and exam file uploads
 export interface TermUpload {
   id: string;
   name: string;

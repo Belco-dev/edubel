@@ -1,11 +1,30 @@
 import { Student, TermUpload, TermData, SubjectMark } from '@/types/reportCard';
 
+/**
+ * Competition ranking: ties share the same rank, next rank skips.
+ * e.g., 1, 1, 3, 4, 4, 6
+ */
+function assignCompetitionRanks<T>(
+  items: T[],
+  getValue: (item: T) => number
+): Map<T, number> {
+  const sorted = [...items].sort((a, b) => getValue(b) - getValue(a));
+  const ranks = new Map<T, number>();
+  let rank = 1;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && getValue(sorted[i]) < getValue(sorted[i - 1])) {
+      rank = i + 1;
+    }
+    ranks.set(sorted[i], rank);
+  }
+  return ranks;
+}
+
 export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
   const uploadedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   
   if (uploadedTerms.length === 0) return [];
 
-  // Get student count from first available data
   const firstTerm = uploadedTerms[0];
   const firstData = firstTerm.testParsedData || firstTerm.examParsedData;
   if (!firstData) return [];
@@ -13,7 +32,6 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
   const studentCount = firstData.students.length;
   const students: Student[] = [];
   
-  // Get all unique subjects from all terms
   const allSubjectsMap = new Map<string, { maxMtt: number; maxExam: number }>();
   
   uploadedTerms.forEach(term => {
@@ -45,12 +63,10 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       const testStudent = term.testParsedData?.students[i];
       const examStudent = term.examParsedData?.students[i];
       
-      // Get student name from whichever source is available
       studentName = testStudent?.fullName || examStudent?.fullName || studentName;
       conductMarks = testStudent?.conductMarks || examStudent?.conductMarks || conductMarks;
       conductMax = testStudent?.conductMax || examStudent?.conductMax || conductMax;
       
-      // Build subjects for this term
       const subjects: SubjectMark[] = [];
       let termTotal = 0;
       let termMax = 0;
@@ -98,7 +114,6 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     
     const overallPercentage = grandMax > 0 ? (grandTotal / grandMax) * 100 : 0;
     
-    // Calculate subject averages for 3-term reports
     const subjectAverages: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[] = [];
     if (uploadedTerms.length === 3) {
       allSubjectsMap.forEach((_, subjectName) => {
@@ -138,79 +153,51 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     });
   }
   
-  // Calculate per-term rankings
+  // Per-term rankings with competition ranking (ties share rank, next skips)
   uploadedTerms.forEach((_, termIndex) => {
-    // Sort students by this term's percentage and assign term rank
-    const termRankings = students
-      .map((student, idx) => ({
-        studentIdx: idx,
-        percentage: student.terms[termIndex]?.percentage || 0,
-      }))
-      .sort((a, b) => b.percentage - a.percentage);
-    
-    termRankings.forEach((item, rankIdx) => {
-      if (students[item.studentIdx].terms[termIndex]) {
-        students[item.studentIdx].terms[termIndex].termRank = rankIdx + 1;
+    // Term-level ranking by totalMarks
+    const termRanks = assignCompetitionRanks(
+      students,
+      s => s.terms[termIndex]?.totalMarks || 0
+    );
+    termRanks.forEach((rank, student) => {
+      if (student.terms[termIndex]) {
+        student.terms[termIndex].termRank = rank;
       }
     });
-  });
-  
-  // Calculate subject ranks for each subject (across all students, summing all terms)
-  if (students.length > 0 && students[0].terms.length > 0) {
+
+    // Per-subject ranking within each term (competition ranking)
     const subjects = Array.from(allSubjectsMap.keys());
-    
     subjects.forEach(subject => {
-      // Get all students' totals for this subject (across all terms)
-      const subjectTotals = students.map(student => {
-        let total = 0;
-        student.terms.forEach(term => {
-          const mark = term.subjects.find(s => s.subject === subject);
-          if (mark) total += mark.total;
-        });
-        return { studentId: student.id, total };
-      });
-      
-      // Sort by total descending and assign ranks
-      subjectTotals.sort((a, b) => b.total - a.total);
-      const ranks = new Map<string, number>();
-      subjectTotals.forEach((item, idx) => {
-        ranks.set(item.studentId, idx + 1);
-      });
-      
-      // Assign rank to each student's subject marks (in first term for display)
-      students.forEach(student => {
-        if (student.terms[0]) {
-          const mark = student.terms[0].subjects.find(s => s.subject === subject);
-          if (mark) {
-            mark.rank = ranks.get(student.id);
-          }
-        }
+      const subjectRanks = assignCompetitionRanks(
+        students,
+        s => s.terms[termIndex]?.subjects.find(sub => sub.subject === subject)?.total || 0
+      );
+      subjectRanks.forEach((rank, student) => {
+        const mark = student.terms[termIndex]?.subjects.find(s => s.subject === subject);
+        if (mark) mark.rank = rank;
       });
     });
-  }
-  
-  // Sort by percentage and assign overall positions
-  students.sort((a, b) => b.overallPercentage - a.overallPercentage);
-  students.forEach((student, index) => {
-    student.position = index + 1;
   });
   
-  // Calculate annual rank for 3-term reports (based on average marks)
+  // Overall position with competition ranking
+  const positionRanks = assignCompetitionRanks(students, s => s.overallPercentage);
+  positionRanks.forEach((rank, student) => {
+    student.position = rank;
+  });
+  
+  // Annual rank for 3-term reports with competition ranking
   if (uploadedTerms.length === 3) {
-    // Annual rank is based on sum of averages (which is effectively the average of totals)
-    const annualRankings = students
-      .map((student, idx) => {
-        const avgSum = student.subjectAverages?.reduce((sum, s) => sum + s.avgTotal, 0) || 0;
-        return { studentIdx: idx, avgSum };
-      })
-      .sort((a, b) => b.avgSum - a.avgSum);
-    
-    annualRankings.forEach((item, rankIdx) => {
-      students[item.studentIdx].annualRank = rankIdx + 1;
+    const annualRanks = assignCompetitionRanks(
+      students,
+      s => s.subjectAverages?.reduce((sum, a) => sum + a.avgTotal, 0) || 0
+    );
+    annualRanks.forEach((rank, student) => {
+      student.annualRank = rank;
     });
   }
   
-  // Re-sort by name for display
+  // Sort by name for display
   students.sort((a, b) => a.fullName.localeCompare(b.fullName));
   
   return students;

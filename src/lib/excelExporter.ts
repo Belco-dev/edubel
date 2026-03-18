@@ -8,6 +8,12 @@ interface ExportOptions {
   terms: TermUpload[];
 }
 
+type CellValue = {
+  value: string | number | null;
+  type?: typeof String | typeof Number;
+  fontWeight?: 'bold';
+};
+
 export async function generateReportCardWorkbook(options: ExportOptions): Promise<Blob> {
   const { students, school, selectedSubjects, terms } = options;
   const selectedTerms = terms.filter((t) => t.selected && (t.testParsedData || t.examParsedData));
@@ -16,7 +22,8 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
   const subjectsFromData = getSubjects(students, selectedTerms);
   const subjects = selectedSubjects.length > 0 ? selectedSubjects : subjectsFromData;
 
-  const headers: (string | number)[] = ['#', 'Student Name'];
+  // Build header labels
+  const headers: string[] = ['#', 'Student Name'];
   for (const term of selectedTerms) {
     for (const subject of subjects) {
       headers.push(`${subject} (${term.shortName})`);
@@ -28,11 +35,24 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
     headers.push('Avg Total', 'Avg %', 'Annual Rank');
   }
 
-  const rows: (string | number)[][] = [headers];
+  // Build cell data with proper cell objects
+  const allRows: CellValue[][] = [];
 
+  // Header row
+  allRows.push(
+    headers.map((h) => ({
+      value: h,
+      fontWeight: 'bold' as const,
+    }))
+  );
+
+  // Data rows
   for (let i = 0; i < students.length; i++) {
     const student = students[i];
-    const row: (string | number)[] = [i + 1, student.fullName];
+    const row: CellValue[] = [
+      { value: i + 1, type: Number },
+      { value: student.fullName },
+    ];
 
     for (const selectedTerm of selectedTerms) {
       const term =
@@ -41,30 +61,38 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
 
       for (const subject of subjects) {
         const mark = term?.subjects.find((m) => m.subject === subject);
-        row.push(mark?.total ?? 0);
+        row.push({ value: mark?.total ?? 0, type: Number });
       }
 
-      row.push(term?.totalMarks ?? 0, Math.round((term?.percentage ?? 0) * 10) / 10, term?.termRank ?? '-');
+      row.push(
+        { value: term?.totalMarks ?? 0, type: Number },
+        { value: Math.round((term?.percentage ?? 0) * 10) / 10, type: Number },
+        { value: term?.termRank ?? 0, type: Number }
+      );
     }
 
     if (hasThreeTerms && student.subjectAverages) {
       const avgTotal = Math.round(student.subjectAverages.reduce((sum, avg) => sum + avg.avgTotal, 0) * 10) / 10;
-      row.push(avgTotal, Math.round(student.overallPercentage * 10) / 10, student.annualRank ?? student.position ?? '-');
+      row.push(
+        { value: avgTotal, type: Number },
+        { value: Math.round(student.overallPercentage * 10) / 10, type: Number },
+        { value: student.annualRank ?? student.position ?? 0, type: Number }
+      );
     }
 
-    rows.push(row);
+    allRows.push(row);
   }
 
   const sheetName = (school.className || 'Report Cards').substring(0, 31);
   const columns = headers.map((header, index) => ({
-    width: index === 1 ? 30 : Math.max(String(header).length + 2, 10),
+    width: index === 1 ? 30 : Math.max(header.length + 2, 10),
   }));
 
-  const output = (await writeXlsxFile(rows as any, {
+  const output = await writeXlsxFile(allRows as any, {
     sheet: sheetName,
     columns,
     buffer: true,
-  } as any)) as unknown as ArrayBuffer;
+  } as any) as unknown as ArrayBuffer;
 
   return new Blob([output], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
