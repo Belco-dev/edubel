@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ManualMarksEntry } from '@/components/ManualMarksEntry';
 
 interface MultiFileUploadProps {
   terms: TermUpload[];
