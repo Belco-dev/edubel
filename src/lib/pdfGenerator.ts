@@ -80,14 +80,22 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     doc.line(0, headerY + 35, pageWidth, headerY + 35);
   }
   
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text(school.name || 'School Name', margin, headerY + 14);
-  
+  let headerTextY = headerY + 12;
+  if (school.name?.trim()) {
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(school.name, margin, headerTextY);
+    headerTextY += 7;
+  }
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(school.address || 'School Address', margin, headerY + 21);
-  doc.text(`Contact: ${school.contact || 'N/A'}`, margin, headerY + 27);
+  if (school.address?.trim()) {
+    doc.text(school.address, margin, headerTextY);
+    headerTextY += 6;
+  }
+  if (school.contact?.trim()) {
+    doc.text(`Contact: ${school.contact}`, margin, headerTextY);
+  }
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   const termDisplay = school.className ? `${school.className} - ${school.termName || 'Term Report Card'}` : (school.termName || 'Term Report Card');
