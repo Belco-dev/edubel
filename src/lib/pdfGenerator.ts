@@ -318,7 +318,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
-  doc.rect(margin, boxY, totalAvailWidth, boxHeight);
+  doc.roundedRect(margin, boxY, totalAvailWidth, boxHeight, 2, 2);
   
   const dividerX = margin + totalAvailWidth / 2;
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);

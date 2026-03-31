@@ -117,6 +117,7 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const [sectionOpen, setSectionOpen] = useState(true);
+  const [showFormatEditor, setShowFormatEditor] = useState(false);
 
   const fieldOrder = schoolData.fieldOrder || DEFAULT_FIELD_ORDER;
 
