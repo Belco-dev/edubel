@@ -430,16 +430,27 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
             )}
           </div>
 
-          {/* Save Button */}
-          <div className="flex items-center gap-3 pt-4 border-t border-border">
+          {/* Save & Submit Buttons */}
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
             <Button onClick={handleSave} className="bg-gradient-primary text-primary-foreground">
               <Save className="h-4 w-4 mr-2" /> Save
+            </Button>
+            <Button onClick={() => setShowFormatEditor(true)} variant="outline" className="border-primary text-primary hover:bg-primary/10">
+              <Send className="h-4 w-4 mr-2" /> Submit & Preview Format
             </Button>
             <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5" />
               Stored only on this browser. Your info is safe.
             </span>
           </div>
+
+          {/* Report Card Format Editor */}
+          <ReportCardFormatEditor
+            open={showFormatEditor}
+            onClose={() => setShowFormatEditor(false)}
+            schoolData={schoolData}
+            onApply={onSchoolDataChange}
+          />
 
           {/* Restore Dialog */}
           <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
