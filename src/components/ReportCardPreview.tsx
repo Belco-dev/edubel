@@ -215,13 +215,15 @@ export function ReportCardPreview({
 
         {/* Report Card Preview */}
         <div className={`border-2 rounded-2xl overflow-hidden ${isBlackWhite ? 'border-foreground bg-background' : 'border-border bg-card'} report-card`}>
-          {/* Number of students */}
-          <div className="px-3 py-1 text-xs text-muted-foreground">
-            Number of students {numStudents}
-          </div>
+          {/* Number of students - only if filled */}
+          {(school.numberOfStudents || students.length > 0) && (
+            <div className="px-3 py-1 text-xs text-muted-foreground">
+              Number of students {numStudents}
+            </div>
+          )}
 
-          {/* Ministry/Header */}
-          {school.ministryName && (
+          {/* Ministry/Header - only if filled */}
+          {school.ministryName?.trim() && (
             <div className={`px-3 py-1 text-center text-xs font-semibold ${isBlackWhite ? 'bg-muted' : 'bg-primary/10'}`}>
               {school.ministryName}
             </div>
@@ -238,9 +240,9 @@ export function ReportCardPreview({
           <div className={`p-3 sm:p-4 ${isBlackWhite ? 'bg-muted border-b-2 border-foreground' : 'bg-gradient-primary text-primary-foreground'}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <h2 className={`text-lg sm:text-xl font-display font-bold truncate ${isBlackWhite ? 'text-foreground' : ''}`}>{school.name || 'School Name'}</h2>
-                <p className={`text-xs sm:text-sm truncate ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>{school.address || 'School Address'}</p>
-                <p className={`text-xs sm:text-sm ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>Contact: {school.contact || 'N/A'}</p>
+                {school.name?.trim() && <h2 className={`text-lg sm:text-xl font-display font-bold truncate ${isBlackWhite ? 'text-foreground' : ''}`}>{school.name}</h2>}
+                {school.address?.trim() && <p className={`text-xs sm:text-sm truncate ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>{school.address}</p>}
+                {school.contact?.trim() && <p className={`text-xs sm:text-sm ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>Contact: {school.contact}</p>}
               </div>
               {school.logo && (
                 <img src={school.logo} alt="School Logo" 

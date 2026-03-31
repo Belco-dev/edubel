@@ -35,8 +35,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text(`Number of students ${numStudents}`, margin, 6);
   currentY = 8;
   
-  // Ministry/Header
-  if (school.ministryName) {
+  // Ministry/Header - only if filled
+  if (school.ministryName?.trim()) {
     doc.setFontSize(9);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'bold');
@@ -58,10 +58,10 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     currentY = Math.max(currentY, yPos + 4);
   });
   
-  // Header
+  // Header with rounded corners
   const headerY = currentY;
   doc.setFillColor(...primaryColor);
-  doc.rect(0, headerY, pageWidth, 35, 'F');
+  doc.roundedRect(margin / 2, headerY, pageWidth - margin, 35, 3, 3, 'F');
   
   if (school.logo) {
     try {
@@ -80,14 +80,22 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     doc.line(0, headerY + 35, pageWidth, headerY + 35);
   }
   
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text(school.name || 'School Name', margin, headerY + 14);
-  
+  let headerTextY = headerY + 12;
+  if (school.name?.trim()) {
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(school.name, margin, headerTextY);
+    headerTextY += 7;
+  }
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text(school.address || 'School Address', margin, headerY + 21);
-  doc.text(`Contact: ${school.contact || 'N/A'}`, margin, headerY + 27);
+  if (school.address?.trim()) {
+    doc.text(school.address, margin, headerTextY);
+    headerTextY += 6;
+  }
+  if (school.contact?.trim()) {
+    doc.text(`Contact: ${school.contact}`, margin, headerTextY);
+  }
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
   const termDisplay = school.className ? `${school.className} - ${school.termName || 'Term Report Card'}` : (school.termName || 'Term Report Card');
@@ -310,7 +318,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
-  doc.rect(margin, boxY, totalAvailWidth, boxHeight);
+  doc.roundedRect(margin, boxY, totalAvailWidth, boxHeight, 2, 2);
   
   const dividerX = margin + totalAvailWidth / 2;
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
