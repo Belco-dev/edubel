@@ -58,10 +58,10 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     currentY = Math.max(currentY, yPos + 4);
   });
   
-  // Header
+  // Header with rounded corners
   const headerY = currentY;
   doc.setFillColor(...primaryColor);
-  doc.rect(0, headerY, pageWidth, 35, 'F');
+  doc.roundedRect(margin / 2, headerY, pageWidth - margin, 35, 3, 3, 'F');
   
   if (school.logo) {
     try {
