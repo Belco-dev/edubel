@@ -35,8 +35,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text(`Number of students ${numStudents}`, margin, 6);
   currentY = 8;
   
-  // Ministry/Header
-  if (school.ministryName) {
+  // Ministry/Header - only if filled
+  if (school.ministryName?.trim()) {
     doc.setFontSize(9);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'bold');
