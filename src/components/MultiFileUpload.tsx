@@ -310,6 +310,9 @@ export function MultiFileUpload({ terms, onTermsUpdate }: MultiFileUploadProps) 
             </div>
           );
         })}
+
+        {/* Manual entry option */}
+        <ManualMarksEntry terms={terms} onTermsUpdate={onTermsUpdate} />
       </CardContent>
     </Card>
   );
