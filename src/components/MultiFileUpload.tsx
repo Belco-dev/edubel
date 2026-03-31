@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ManualMarksEntry } from '@/components/ManualMarksEntry';
 
 interface MultiFileUploadProps {
   terms: TermUpload[];
@@ -309,6 +310,9 @@ export function MultiFileUpload({ terms, onTermsUpdate }: MultiFileUploadProps) 
             </div>
           );
         })}
+
+        {/* Manual entry option */}
+        <ManualMarksEntry terms={terms} onTermsUpdate={onTermsUpdate} />
       </CardContent>
     </Card>
   );
