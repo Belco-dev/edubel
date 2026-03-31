@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2, GripVertical, Save, ShieldCheck, ChevronDown, Users } from 'lucide-react';
+import { Building2, Phone, Calendar, Upload, ImageIcon, X, FileText, GraduationCap, Plus, Trash2, GripVertical, Save, ShieldCheck, ChevronDown, Users, Send } from 'lucide-react';
+import { ReportCardFormatEditor } from '@/components/ReportCardFormatEditor';
 import { SchoolData, CustomDetail } from '@/types/reportCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
