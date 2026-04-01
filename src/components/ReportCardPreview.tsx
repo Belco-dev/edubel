@@ -215,20 +215,6 @@ export function ReportCardPreview({
 
         {/* Report Card Preview */}
         <div className={`border-2 rounded-2xl overflow-hidden ${isBlackWhite ? 'border-foreground bg-background' : 'border-border bg-card'} report-card`}>
-          {/* Number of students - only if filled */}
-          {(school.numberOfStudents || students.length > 0) && (
-            <div className="px-3 py-1 text-xs text-muted-foreground">
-              Number of students {numStudents}
-            </div>
-          )}
-
-          {/* Ministry/Header - only if filled */}
-          {school.ministryName?.trim() && (
-            <div className={`px-3 py-1 text-center text-xs font-semibold ${isBlackWhite ? 'bg-muted' : 'bg-primary/10'}`}>
-              {school.ministryName}
-            </div>
-          )}
-          
           {/* Custom Details - Top positions */}
           {[...(school.customDetail?.text ? [school.customDetail] : []), ...(school.customDetails || [])].filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight')).map((detail, i) => (
             <div key={i} className={`px-3 py-1 text-xs ${detail.position === 'topRight' ? 'text-right' : 'text-left'} ${isBlackWhite ? 'bg-muted' : 'bg-primary/5'}`}>
@@ -236,36 +222,50 @@ export function ReportCardPreview({
             </div>
           ))}
 
-          {/* Header */}
+          {/* Header - respects fieldOrder */}
           <div className={`p-3 sm:p-4 ${isBlackWhite ? 'bg-muted border-b-2 border-foreground' : 'bg-gradient-primary text-primary-foreground'}`}>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                {school.name?.trim() && <h2 className={`text-lg sm:text-xl font-display font-bold truncate ${isBlackWhite ? 'text-foreground' : ''}`}>{school.name}</h2>}
-                {school.address?.trim() && <p className={`text-xs sm:text-sm truncate ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>{school.address}</p>}
-                {school.contact?.trim() && <p className={`text-xs sm:text-sm ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}>Contact: {school.contact}</p>}
+              <div className="flex-1 min-w-0 space-y-0.5">
+                {(school.fieldOrder || ['ministryName', 'name', 'address', 'contact', 'className', 'classTeacher', 'termName', 'numberOfStudents']).map(id => {
+                  const value = (() => {
+                    switch (id) {
+                      case 'ministryName': return school.ministryName || '';
+                      case 'name': return school.name || '';
+                      case 'address': return school.address || '';
+                      case 'contact': return school.contact ? `Contact: ${school.contact}` : '';
+                      case 'className': return school.className ? `Class: ${school.className}` : '';
+                      case 'classTeacher': return school.classTeacher ? `Class Teacher: ${school.classTeacher}` : '';
+                      case 'termName': return school.termName ? `Term: ${school.termName}` : '';
+                      case 'numberOfStudents': return school.numberOfStudents ? `Students: ${school.numberOfStudents}` : '';
+                      default: return '';
+                    }
+                  })();
+                  if (!value.trim()) return null;
+                  const isName = id === 'name';
+                  return (
+                    <p key={id} className={`truncate ${isName ? 'text-lg sm:text-xl font-display font-bold' : `text-xs sm:text-sm ${isBlackWhite ? 'text-muted-foreground' : 'opacity-80'}`}`}>
+                      {value}
+                    </p>
+                  );
+                })}
               </div>
               {school.logo && (
                 <img src={school.logo} alt="School Logo" 
                   className={`h-12 w-12 sm:h-16 sm:w-16 object-contain rounded-lg p-1 flex-shrink-0 ${isBlackWhite ? 'bg-muted' : 'bg-background/20'}`} />
               )}
             </div>
-            <div className="text-center mt-2">
-              <span className={`px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-medium ${isBlackWhite ? 'bg-foreground text-background' : 'bg-background/20'}`}>
-                {school.className && `${school.className} - `}{school.termName || 'Term Report Card'}
-              </span>
-            </div>
           </div>
 
-          {/* Student Name & Conduct */}
+          {/* Student Name & Conduct - with overflow protection */}
           <div className="p-3 sm:p-4 bg-muted/30 space-y-3">
-            <div className="flex flex-wrap justify-between gap-2 sm:gap-4">
-              <div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="min-w-0">
                 <span className="text-xs sm:text-sm text-muted-foreground">Student Name</span>
-                <p className="font-semibold text-base sm:text-lg">{currentStudent.fullName}</p>
+                <p className="font-semibold text-sm sm:text-base truncate">{currentStudent.fullName}</p>
               </div>
-              <div>
+              <div className="min-w-0 text-right">
                 <span className="text-xs sm:text-sm text-muted-foreground">Class Teacher</span>
-                <p className="font-semibold text-sm">{school.classTeacher || '—'}</p>
+                <p className="font-semibold text-sm truncate">{school.classTeacher || '—'}</p>
               </div>
             </div>
             <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
