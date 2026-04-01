@@ -243,9 +243,21 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
     });
   };
 
-  const orderedFields = fieldOrder
-    .map(id => FIELD_DEFS.find(f => f.id === id))
-    .filter((f): f is FieldDef => !!f);
+  // Build unified ordered items: standard fields + custom_N entries
+  type UnifiedItem = { type: 'standard'; field: FieldDef } | { type: 'custom'; index: number; detail: CustomDetail };
+  const orderedItems: UnifiedItem[] = fieldOrder
+    .map(id => {
+      const stdField = FIELD_DEFS.find(f => f.id === id);
+      if (stdField) return { type: 'standard' as const, field: stdField };
+      if (id.startsWith('custom_')) {
+        const idx = parseInt(id.replace('custom_', ''), 10);
+        if (!isNaN(idx) && idx < customDetails.length) {
+          return { type: 'custom' as const, index: idx, detail: customDetails[idx] };
+        }
+      }
+      return null;
+    })
+    .filter((item): item is UnifiedItem => item !== null);
 
   return (
     <Card className="card-hover overflow-hidden">
