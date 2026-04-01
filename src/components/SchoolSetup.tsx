@@ -17,6 +17,22 @@ const DEFAULT_FIELD_ORDER = [
   'className', 'classTeacher', 'termName', 'numberOfStudents'
 ];
 
+// Ensure fieldOrder includes all standard fields + custom_N entries
+function ensureCompleteFieldOrder(fieldOrder: string[] | undefined, customDetailsCount: number): string[] {
+  const base = fieldOrder || [...DEFAULT_FIELD_ORDER];
+  const allIds = new Set(base);
+  // Add any missing standard fields
+  DEFAULT_FIELD_ORDER.forEach(id => {
+    if (!allIds.has(id)) { base.push(id); allIds.add(id); }
+  });
+  // Add custom detail entries
+  for (let i = 0; i < customDetailsCount; i++) {
+    const cid = `custom_${i}`;
+    if (!allIds.has(cid)) { base.push(cid); allIds.add(cid); }
+  }
+  return base;
+}
+
 interface FieldDef {
   id: string;
   label: string;
