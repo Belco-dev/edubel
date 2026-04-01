@@ -441,8 +441,6 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
               Click "Add Custom Field" to add custom information to your report cards
             </p>
           )}
-            )}
-          </div>
 
           {/* Save & Submit Buttons */}
           <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
