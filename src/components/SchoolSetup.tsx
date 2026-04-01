@@ -135,7 +135,8 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
   const [sectionOpen, setSectionOpen] = useState(true);
   const [showFormatEditor, setShowFormatEditor] = useState(false);
 
-  const fieldOrder = schoolData.fieldOrder || DEFAULT_FIELD_ORDER;
+  const customDetails = schoolData.customDetails || [];
+  const fieldOrder = ensureCompleteFieldOrder(schoolData.fieldOrder, customDetails.length);
 
   const handleSave = useCallback(() => {
     try {
