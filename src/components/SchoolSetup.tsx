@@ -319,144 +319,128 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
             </div>
           </div>
 
-          {/* Draggable Standard Fields */}
+          {/* Unified Draggable Fields (standard + custom) */}
           <div className="space-y-3" onFocus={handleFieldFocus}>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <GripVertical className="h-3 w-3" /> Drag to reorder fields
-            </p>
-            {orderedFields.map((field, index) => {
-              const Icon = field.icon;
-              return (
-                <div
-                  key={field.id}
-                  draggable
-                  onDragStart={() => handleFieldDragStart(index)}
-                  onDragOver={e => handleFieldDragOver(e, index)}
-                  onDrop={() => handleFieldDrop(index)}
-                  onDragEnd={() => { setDragFieldIndex(null); setDragOverFieldIndex(null); }}
-                  className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
-                    dragOverFieldIndex === index ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50'
-                  } ${dragFieldIndex === index ? 'opacity-50' : ''}`}
-                >
-                  <div className="cursor-grab active:cursor-grabbing flex-shrink-0">
-                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <GripVertical className="h-3 w-3" /> Drag to reorder all fields
+              </p>
+              <Button variant="outline" size="sm" onClick={() => {
+                const newDetails = [...(schoolData.customDetails || []), { text: '', position: 'topLeft' as const }];
+                const newFieldOrder = ensureCompleteFieldOrder(schoolData.fieldOrder, newDetails.length);
+                onSchoolDataChange({ ...schoolData, customDetails: newDetails, fieldOrder: newFieldOrder });
+              }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Custom Field
+              </Button>
+            </div>
+            {orderedItems.map((item, index) => {
+              if (item.type === 'standard') {
+                const field = item.field;
+                const Icon = field.icon;
+                return (
+                  <div
+                    key={field.id}
+                    draggable
+                    onDragStart={() => handleFieldDragStart(index)}
+                    onDragOver={e => handleFieldDragOver(e, index)}
+                    onDrop={() => handleFieldDrop(index)}
+                    onDragEnd={() => { setDragFieldIndex(null); setDragOverFieldIndex(null); }}
+                    className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
+                      dragOverFieldIndex === index ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-muted/50'
+                    } ${dragFieldIndex === index ? 'opacity-50' : ''}`}
+                  >
+                    <div className="cursor-grab active:cursor-grabbing flex-shrink-0">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="flex items-center gap-2 text-sm">
+                        <Icon className={`h-3.5 w-3.5 ${field.iconColor}`} />
+                        {field.label}
+                      </Label>
+                      <Input
+                        placeholder={field.placeholder}
+                        value={field.getValue(schoolData)}
+                        onChange={e => onSchoolDataChange(field.setValue(schoolData, e.target.value))}
+                        className="transition-all focus:ring-2 focus:ring-primary/20"
+                        type={field.id === 'numberOfStudents' ? 'number' : 'text'}
+                      />
+                    </div>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    <Label className="flex items-center gap-2 text-sm">
-                      <Icon className={`h-3.5 w-3.5 ${field.iconColor}`} />
-                      {field.label}
-                    </Label>
-                    <Input
-                      placeholder={field.placeholder}
-                      value={field.getValue(schoolData)}
-                      onChange={e => onSchoolDataChange(field.setValue(schoolData, e.target.value))}
-                      className="transition-all focus:ring-2 focus:ring-primary/20"
-                      type={field.id === 'numberOfStudents' ? 'number' : 'text'}
-                    />
+                );
+              } else {
+                const { index: cIdx, detail } = item;
+                return (
+                  <div
+                    key={`custom_${cIdx}`}
+                    draggable
+                    onDragStart={() => handleFieldDragStart(index)}
+                    onDragOver={e => handleFieldDragOver(e, index)}
+                    onDrop={() => handleFieldDrop(index)}
+                    onDragEnd={() => { setDragFieldIndex(null); setDragOverFieldIndex(null); }}
+                    className={`flex items-center gap-3 p-2 rounded-lg border transition-all bg-accent/5 ${
+                      dragOverFieldIndex === index ? 'border-primary bg-primary/5' : 'border-accent/30 hover:bg-accent/10'
+                    } ${dragFieldIndex === index ? 'opacity-50' : ''}`}
+                  >
+                    <div className="cursor-grab active:cursor-grabbing flex-shrink-0">
+                      <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label className="flex items-center gap-2 text-sm">
+                        <FileText className="h-3.5 w-3.5 text-accent" />
+                        Custom Field {cIdx + 1}
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g., P.O. Box 123, Kigali"
+                          value={detail.text}
+                          className="flex-1"
+                          onChange={e => {
+                            const updated = [...(schoolData.customDetails || [])];
+                            updated[cIdx] = { ...updated[cIdx], text: e.target.value };
+                            onSchoolDataChange({ ...schoolData, customDetails: updated });
+                          }}
+                        />
+                        <Select value={detail.position} onValueChange={v => {
+                          const updated = [...(schoolData.customDetails || [])];
+                          updated[cIdx] = { ...updated[cIdx], position: v as CustomDetail['position'] };
+                          onSchoolDataChange({ ...schoolData, customDetails: updated });
+                        }}>
+                          <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="topLeft">Top Left</SelectItem>
+                            <SelectItem value="topRight">Top Right</SelectItem>
+                            <SelectItem value="bottomLeft">Bottom Left</SelectItem>
+                            <SelectItem value="bottomRight">Bottom Right</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 flex-shrink-0"
+                          onClick={() => {
+                            const updated = (schoolData.customDetails || []).filter((_, i) => i !== cIdx);
+                            // Remove custom_N from fieldOrder and re-index
+                            const newOrder = fieldOrder.filter(id => id !== `custom_${cIdx}`).map(id => {
+                              if (id.startsWith('custom_')) {
+                                const n = parseInt(id.replace('custom_', ''), 10);
+                                if (n > cIdx) return `custom_${n - 1}`;
+                              }
+                              return id;
+                            });
+                            onSchoolDataChange({ ...schoolData, customDetails: updated, fieldOrder: newOrder });
+                          }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
+                );
+              }
             })}
           </div>
 
-          {/* Custom Detail Fields */}
-          <div className="pt-4 border-t border-border space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 text-base font-medium">
-                <FileText className="h-4 w-4 text-accent" />
-                Custom Fields (Optional)
-              </Label>
-              <Button variant="outline" size="sm" onClick={() => {
-                const current = schoolData.customDetails || [];
-                onSchoolDataChange({
-                  ...schoolData,
-                  customDetails: [...current, { text: '', position: 'topLeft' as const }],
-                });
-              }}>
-                <Plus className="h-4 w-4 mr-1" /> Add Field
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Add extra information to appear on the report card</p>
-
-            {/* Legacy single custom detail */}
-            {schoolData.customDetail?.text && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div className="md:col-span-2 space-y-2">
-                  <Label>Detail Text</Label>
-                  <Input placeholder="e.g., Academic Year 2024-2025" value={schoolData.customDetail.text}
-                    onChange={e => handleCustomDetailChange('text', e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Position</Label>
-                  <Select value={schoolData.customDetail.position}
-                    onValueChange={v => handleCustomDetailChange('position', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="topLeft">Top Left</SelectItem>
-                      <SelectItem value="topRight">Top Right</SelectItem>
-                      <SelectItem value="bottomLeft">Bottom Left</SelectItem>
-                      <SelectItem value="bottomRight">Bottom Right</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* Dynamic custom details */}
-            {(schoolData.customDetails || []).map((detail, index) => (
-              <div
-                key={index}
-                draggable
-                onDragStart={() => handleCustomDragStart(index)}
-                onDragOver={e => handleCustomDragOver(e, index)}
-                onDrop={() => handleCustomDrop(index)}
-                onDragEnd={() => { setCustomDragIndex(null); setCustomDragOverIndex(null); }}
-                className={`grid grid-cols-[auto_1fr_1fr_auto] md:grid-cols-[auto_2fr_1fr_auto] gap-4 items-end transition-all ${
-                  customDragOverIndex === index ? 'border-t-2 border-primary' : ''
-                } ${customDragIndex === index ? 'opacity-50' : ''}`}
-              >
-                <div className="flex items-center justify-center cursor-grab active:cursor-grabbing pt-6">
-                  <GripVertical className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Field {index + 1} Text</Label>
-                  <Input placeholder="e.g., P.O. Box 123, Kigali" value={detail.text}
-                    onChange={e => {
-                      const updated = [...(schoolData.customDetails || [])];
-                      updated[index] = { ...updated[index], text: e.target.value };
-                      onSchoolDataChange({ ...schoolData, customDetails: updated });
-                    }} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Position</Label>
-                  <Select value={detail.position} onValueChange={v => {
-                    const updated = [...(schoolData.customDetails || [])];
-                    updated[index] = { ...updated[index], position: v as CustomDetail['position'] };
-                    onSchoolDataChange({ ...schoolData, customDetails: updated });
-                  }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="topLeft">Top Left</SelectItem>
-                      <SelectItem value="topRight">Top Right</SelectItem>
-                      <SelectItem value="bottomLeft">Bottom Left</SelectItem>
-                      <SelectItem value="bottomRight">Bottom Right</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80"
-                  onClick={() => {
-                    const updated = (schoolData.customDetails || []).filter((_, i) => i !== index);
-                    onSchoolDataChange({ ...schoolData, customDetails: updated });
-                  }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-
-            {(!schoolData.customDetails || schoolData.customDetails.length === 0) && !schoolData.customDetail?.text && (
-              <p className="text-xs text-muted-foreground italic text-center py-2">
-                Click "Add Field" to add custom information to your report cards
-              </p>
+          {(!schoolData.customDetails || schoolData.customDetails.length === 0) && !schoolData.customDetail?.text && orderedItems.filter(i => i.type === 'custom').length === 0 && (
+            <p className="text-xs text-muted-foreground italic text-center py-2">
+              Click "Add Custom Field" to add custom information to your report cards
+            </p>
+          )}
             )}
           </div>
 
