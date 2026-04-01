@@ -11,6 +11,50 @@ interface GeneratePDFOptions {
   reportCardStyle: ReportCardStyle;
 }
 
+const DEFAULT_FIELD_ORDER = [
+  'ministryName', 'name', 'address', 'contact',
+  'className', 'classTeacher', 'termName', 'numberOfStudents'
+];
+
+function getFieldValue(data: SchoolData, id: string): string {
+  switch (id) {
+    case 'ministryName': return data.ministryName || '';
+    case 'name': return data.name || '';
+    case 'address': return data.address || '';
+    case 'contact': return data.contact ? `Contact: ${data.contact}` : '';
+    case 'className': return data.className || '';
+    case 'classTeacher': return data.classTeacher || '';
+    case 'termName': return data.termName || '';
+    case 'numberOfStudents': return data.numberOfStudents?.toString() || '';
+    default: return '';
+  }
+}
+
+function getFieldLabel(id: string): string {
+  const labels: Record<string, string> = {
+    ministryName: '',
+    name: '',
+    address: '',
+    contact: '',
+    className: 'Class:',
+    classTeacher: 'Class Teacher:',
+    termName: 'Term:',
+    numberOfStudents: 'Number of Students:',
+  };
+  return labels[id] ?? '';
+}
+
+// Auto-fit text: reduce font size if text exceeds maxWidth
+function autoFitText(doc: jsPDF, text: string, maxWidth: number, startSize: number, minSize: number = 5): number {
+  let size = startSize;
+  doc.setFontSize(size);
+  while (doc.getTextWidth(text) > maxWidth && size > minSize) {
+    size -= 0.5;
+    doc.setFontSize(size);
+  }
+  return size;
+}
+
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
   const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -27,102 +71,135 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   let currentY = 0;
   
-  // Number of students at the very top
-  const numStudents = school.numberOfStudents || totalStudents;
-  doc.setFontSize(8);
-  doc.setTextColor(...textBlack);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Number of students ${numStudents}`, margin, 6);
-  currentY = 8;
+  // Get field order
+  const fieldOrder = school.fieldOrder || DEFAULT_FIELD_ORDER;
   
-  // Ministry/Header - only if filled
-  if (school.ministryName?.trim()) {
-    doc.setFontSize(9);
-    doc.setTextColor(...textBlack);
-    doc.setFont('helvetica', 'bold');
-    doc.text(school.ministryName, pageWidth / 2, currentY + 4, { align: 'center' });
-    currentY += 8;
-  }
+  // Collect filled fields in order
+  const filledFields = fieldOrder.filter(id => {
+    const val = getFieldValue(school, id);
+    return val.trim() !== '';
+  });
   
-  // Custom Details - Top positions
+  // Custom Details
   const allDetails = [...(school.customDetail?.text ? [school.customDetail] : []), ...(school.customDetails || [])];
   const topDetails = allDetails.filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight'));
+  const bottomDetails = allDetails.filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight'));
+  
+  // Render top custom details first
+  currentY = 5;
   topDetails.forEach(detail => {
     doc.setFontSize(8);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'normal');
     const xPos = detail.position === 'topRight' ? pageWidth - margin : margin;
     const align = detail.position === 'topRight' ? 'right' : 'left';
-    const yPos = currentY > 0 ? currentY + 4 : 8;
-    doc.text(detail.text, xPos, yPos, { align: align as 'left' | 'right' });
-    currentY = Math.max(currentY, yPos + 4);
+    doc.text(detail.text, xPos, currentY + 4, { align: align as 'left' | 'right' });
+    currentY += 5;
   });
   
-  // Header with rounded corners
-  const headerY = currentY;
-  doc.setFillColor(...primaryColor);
-  doc.roundedRect(margin / 2, headerY, pageWidth - margin, 35, 3, 3, 'F');
+  // Header background with rounded corners
+  const headerStartY = currentY;
+  // Calculate header height based on number of filled fields
+  const headerLineHeight = 5.5;
+  const headerPadding = 8;
+  const headerHeight = Math.max(35, headerPadding + filledFields.length * headerLineHeight + 4);
   
+  if (isBlackWhite) {
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(margin / 2, headerStartY, pageWidth - margin, headerHeight, 3, 3, 'F');
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(margin / 2, headerStartY + headerHeight, pageWidth - margin / 2, headerStartY + headerHeight);
+  } else {
+    doc.setFillColor(...primaryColor);
+    doc.roundedRect(margin / 2, headerStartY, pageWidth - margin, headerHeight, 3, 3, 'F');
+  }
+  
+  // Logo
   if (school.logo) {
     try {
-      doc.addImage(school.logo, 'PNG', pageWidth - 40, headerY + 3, 30, 28);
+      doc.addImage(school.logo, 'PNG', pageWidth - 40, headerStartY + 3, 30, Math.min(28, headerHeight - 6));
     } catch (e) {
       console.log('Could not add logo');
     }
   }
   
   doc.setTextColor(...(isBlackWhite ? textBlack : textWhite));
-  if (isBlackWhite) {
-    doc.setFillColor(245, 245, 245);
-    doc.rect(0, headerY, pageWidth, 35, 'F');
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
-    doc.line(0, headerY + 35, pageWidth, headerY + 35);
-  }
   
-  let headerTextY = headerY + 12;
-  if (school.name?.trim()) {
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text(school.name, margin, headerTextY);
-    headerTextY += 7;
-  }
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  if (school.address?.trim()) {
-    doc.text(school.address, margin, headerTextY);
-    headerTextY += 6;
-  }
-  if (school.contact?.trim()) {
-    doc.text(`Contact: ${school.contact}`, margin, headerTextY);
-  }
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  const termDisplay = school.className ? `${school.className} - ${school.termName || 'Term Report Card'}` : (school.termName || 'Term Report Card');
-  doc.text(termDisplay, pageWidth / 2, headerY + 33, { align: 'center' });
+  // Render header fields in order
+  let headerTextY = headerStartY + headerPadding;
+  const maxTextWidth = school.logo ? pageWidth - margin - 45 : pageWidth - margin * 2 - 5;
   
-  currentY = headerY + 40;
+  filledFields.forEach(id => {
+    const value = getFieldValue(school, id);
+    const label = getFieldLabel(id);
+    const displayText = label ? `${label} ${value}` : value;
+    
+    // Determine font size based on field type
+    let baseFontSize = 9;
+    let fontStyle: 'bold' | 'normal' = 'normal';
+    
+    if (id === 'name') {
+      baseFontSize = 16;
+      fontStyle = 'bold';
+    } else if (id === 'ministryName') {
+      baseFontSize = 9;
+      fontStyle = 'bold';
+    }
+    
+    doc.setFont('helvetica', fontStyle);
+    const usedSize = autoFitText(doc, displayText, maxTextWidth, baseFontSize);
+    doc.text(displayText, margin, headerTextY);
+    
+    headerTextY += id === 'name' ? 7 : headerLineHeight;
+  });
   
-  // Student Info
+  currentY = headerStartY + headerHeight + 4;
+  
+  // Student Info with collision prevention
   doc.setTextColor(...textBlack);
   doc.setFillColor(...headerBg);
   doc.roundedRect(margin, currentY, totalAvailWidth, 18, 2, 2, 'F');
   
-  doc.setFontSize(11);
+  const halfWidth = totalAvailWidth / 2 - 5;
+  
+  // Left side: Student Name (auto-fit)
+  const studentLabel = 'Student Name: ';
+  const studentFullText = studentLabel + student.fullName;
   doc.setFont('helvetica', 'bold');
-  doc.text('Student Name:', 15, currentY + 8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(student.fullName, 50, currentY + 8);
+  doc.setFontSize(10);
+  const labelWidth = doc.getTextWidth(studentLabel);
   
   doc.setFont('helvetica', 'bold');
-  doc.text('Conduct:', 15, currentY + 14);
+  autoFitText(doc, studentLabel, halfWidth, 10);
+  doc.text('Student Name:', margin + 3, currentY + 8);
+  
   doc.setFont('helvetica', 'normal');
-  doc.text(`${student.conductMarks} / ${student.conductMax}`, 40, currentY + 14);
+  const nameMaxWidth = halfWidth - labelWidth - 2;
+  autoFitText(doc, student.fullName, nameMaxWidth > 10 ? nameMaxWidth : halfWidth * 0.6, 10);
+  doc.text(student.fullName, margin + 3 + labelWidth, currentY + 8);
+  
+  // Right side: Class Teacher (auto-fit)
+  const rightX = margin + totalAvailWidth / 2 + 2;
+  const teacherLabel = 'Class Teacher: ';
+  const teacherName = school.classTeacher || '________________';
   
   doc.setFont('helvetica', 'bold');
-  doc.text('Class Teacher:', pageWidth / 2, currentY + 8);
+  autoFitText(doc, teacherLabel, halfWidth, 10);
+  const teacherLabelWidth = doc.getTextWidth(teacherLabel);
+  doc.text(teacherLabel, rightX, currentY + 8);
+  
   doc.setFont('helvetica', 'normal');
-  doc.text(school.classTeacher || '________________', pageWidth / 2 + 30, currentY + 8);
+  const teacherNameMaxWidth = halfWidth - teacherLabelWidth - 2;
+  autoFitText(doc, teacherName, teacherNameMaxWidth > 10 ? teacherNameMaxWidth : halfWidth * 0.6, 10);
+  doc.text(teacherName, rightX + teacherLabelWidth, currentY + 8);
+  
+  // Conduct
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Conduct:', margin + 3, currentY + 14);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${student.conductMarks} / ${student.conductMax}`, margin + 3 + doc.getTextWidth('Conduct: '), currentY + 14);
   
   currentY += 22;
   
@@ -131,7 +208,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const numTerms = selectedTerms.length;
   const hasThreeTerms = numTerms === 3;
   
-  // Header rows - with Rank column per term
   const headerRow1: string[] = ['SUBJECTS', 'MAX', '', ''];
   const headerRow2: string[] = ['', 'TEST', 'EX', 'TOT'];
   
@@ -150,7 +226,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   const tableHeaders: string[][] = [headerRow1, headerRow2];
   
-  // Build table data
   const allSubjects = student.terms[0]?.subjects || [];
   const filteredSubjects = allSubjects.filter(s => 
     selectedSubjects.length === 0 || selectedSubjects.includes(s.subject)
@@ -234,7 +309,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   pctRow.push('');
   tableData.push(pctRow);
   
-  // Rank row - term rank goes in Rank column
+  // Rank row
   const rankRow: (string | number)[] = ['Rank', '', '', ''];
   
   student.terms.forEach(term => {
@@ -248,17 +323,15 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   rankRow.push('');
   tableData.push(rankRow);
   
-  // Calculate column widths to fill the full available width
-  // Columns: SUBJECTS(1) + MAX(3) + per-term(4: TEST,EX,TOT,Rank) + AVG(3 if 3 terms) + Comments(1)
+  // Column widths
   const numCols = 4 + numTerms * 4 + (hasThreeTerms ? 3 : 0) + 1;
   
-  // Give proportional widths
   const subjectPct = 0.14;
   const commentsPct = 0.07;
   const subjectColWidth = totalAvailWidth * subjectPct;
   const commentsColWidth = totalAvailWidth * commentsPct;
   const remainingWidth = totalAvailWidth - subjectColWidth - commentsColWidth;
-  const numDataCols = numCols - 2; // all except SUBJECTS and Comments
+  const numDataCols = numCols - 2;
   const dataColWidth = remainingWidth / numDataCols;
   
   const columnStyles: Record<number, { cellWidth: number; halign?: 'left' | 'center' | 'right' }> = {
@@ -312,7 +385,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
   
-  // Observations and Signatures box - same width as table
+  // Observations and Signatures box
   const boxY = finalY + 5;
   const boxHeight = 35;
   
@@ -331,8 +404,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
-  // Custom Details - Bottom positions
-  const bottomDetails = allDetails.filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight'));
+  // Bottom custom details
   let bottomY = boxY + boxHeight + 8;
   bottomDetails.forEach(detail => {
     doc.setFontSize(8);
