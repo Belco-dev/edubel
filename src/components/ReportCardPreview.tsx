@@ -446,11 +446,30 @@ export function ReportCardPreview({
 
           {/* Observations box - same width as table */}
           <div className="px-2 sm:px-4 mb-3">
-            <div className={`border ${isBlackWhite ? 'border-foreground' : 'border-border'} w-full`}>
+            <div className={`border rounded-lg ${isBlackWhite ? 'border-foreground' : 'border-border'} w-full`}>
               <div className="grid grid-cols-2">
                 <div className={`border-r p-2 ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>
                   <span className="text-xs font-semibold block mb-1">Observations</span>
-                  <div className="h-12 sm:h-16" />
+                  {(() => {
+                    const lastTerm = currentStudent.terms[currentStudent.terms.length - 1];
+                    const comment = getAutoComment(lastTerm?.percentage || 0, gradingRules);
+                    return comment ? (
+                      <p className="text-[10px] text-muted-foreground italic mb-1">{comment}</p>
+                    ) : null;
+                  })()}
+                  {hasThreeTerms && (
+                    <div className="flex gap-3 mt-1">
+                      <label className="flex items-center gap-1 text-[10px]">
+                        <span className="inline-block w-3 h-3 border border-foreground rounded-sm" />
+                        Promoted
+                      </label>
+                      <label className="flex items-center gap-1 text-[10px]">
+                        <span className="inline-block w-3 h-3 border border-foreground rounded-sm" />
+                        Repeated
+                      </label>
+                    </div>
+                  )}
+                  {!hasThreeTerms && <div className="h-8 sm:h-12" />}
                 </div>
                 <div className="p-2">
                   <div className={`border-b pb-2 mb-2 ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>
