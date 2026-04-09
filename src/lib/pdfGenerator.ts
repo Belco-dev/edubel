@@ -161,13 +161,16 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // Student Info with collision prevention
   doc.setTextColor(...textBlack);
   doc.setFillColor(...headerBg);
-  doc.roundedRect(margin, currentY, totalAvailWidth, 18, 2, 2, 'F');
+
+  // Calculate student info box height based on whether dateOfBirth exists
+  const hasDateOfBirth = !!student.dateOfBirth;
+  const studentInfoHeight = hasDateOfBirth ? 24 : 18;
+  doc.roundedRect(margin, currentY, totalAvailWidth, studentInfoHeight, 2, 2, 'F');
   
   const halfWidth = totalAvailWidth / 2 - 5;
   
   // Left side: Student Name (auto-fit)
   const studentLabel = 'Student Name: ';
-  const studentFullText = studentLabel + student.fullName;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   const labelWidth = doc.getTextWidth(studentLabel);
@@ -196,14 +199,21 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   autoFitText(doc, teacherName, teacherNameMaxWidth > 10 ? teacherNameMaxWidth : halfWidth * 0.6, 10);
   doc.text(teacherName, rightX + teacherLabelWidth, currentY + 8);
   
-  // Conduct
+  // Conduct & Born at row
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text('Conduct:', margin + 3, currentY + 14);
   doc.setFont('helvetica', 'normal');
   doc.text(`${student.conductMarks} / ${student.conductMax}`, margin + 3 + doc.getTextWidth('Conduct: '), currentY + 14);
+
+  if (hasDateOfBirth) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Born at:', rightX, currentY + 14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.dateOfBirth || '', rightX + doc.getTextWidth('Born at: '), currentY + 14);
+  }
   
-  currentY += 22;
+  currentY += studentInfoHeight + 4;
   
   // Build table
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
