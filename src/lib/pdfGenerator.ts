@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { getAutoComment } from '@/components/GradingSystem';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -9,6 +10,7 @@ interface GeneratePDFOptions {
   selectedSubjects: string[];
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
+  gradingRules: GradingRule[];
 }
 
 const DEFAULT_FIELD_ORDER = [
@@ -56,7 +58,7 @@ function autoFitText(doc: jsPDF, text: string, maxWidth: number, startSize: numb
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle } = options;
+  const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle, gradingRules } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
