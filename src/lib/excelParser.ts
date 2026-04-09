@@ -53,6 +53,16 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
       };
     }
 
+    // Find "Born at" column
+    let bornAtColumnIndex = -1;
+    headers.forEach((headerStr, index) => {
+      if (!headerStr) return;
+      const headerLower = headerStr.toLowerCase().trim();
+      if (headerLower === 'born at' || headerLower === 'date of birth' || headerLower === 'dob') {
+        bornAtColumnIndex = index;
+      }
+    });
+
     // Find conduct column - format: Conduct/MAX
     let conductColumnIndex = -1;
     let conductMaxFromFile = 100;
@@ -77,6 +87,7 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
     const processedIndices = new Set<number>();
     processedIndices.add(nameColumnIndex);
     if (conductColumnIndex !== -1) processedIndices.add(conductColumnIndex);
+    if (bornAtColumnIndex !== -1) processedIndices.add(bornAtColumnIndex);
 
     headers.forEach((headerStr, index) => {
       if (processedIndices.has(index) || !headerStr) return;
