@@ -48,7 +48,7 @@ export function ReportCardPreview({
     try {
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -63,7 +63,7 @@ export function ReportCardPreview({
       for (const student of students) {
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -85,7 +85,7 @@ export function ReportCardPreview({
         const student = students[i];
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
         });
         const pdfBlob = doc.output('blob');
         pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
