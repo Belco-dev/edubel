@@ -154,10 +154,26 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
         ? Number(row[conductColumnIndex]) || 0
         : 0;
 
+      // Parse Born at date
+      let dateOfBirth: string | undefined;
+      if (bornAtColumnIndex !== -1 && row[bornAtColumnIndex] != null) {
+        const raw = row[bornAtColumnIndex];
+        if (raw instanceof Date) {
+          const dd = String(raw.getDate()).padStart(2, '0');
+          const mm = String(raw.getMonth() + 1).padStart(2, '0');
+          const yyyy = raw.getFullYear();
+          dateOfBirth = `${dd}/${mm}/${yyyy}`;
+        } else {
+          const str = String(raw).trim();
+          if (str) dateOfBirth = str;
+        }
+      }
+
       const percentage = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
 
       students.push({
         fullName: fullName.trim(),
+        dateOfBirth,
         marks,
         conductMarks: conductMarksValue,
         conductMax: conductMaxFromFile,
