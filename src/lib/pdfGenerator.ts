@@ -399,7 +399,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   // Observations and Signatures box
   const boxY = finalY + 5;
-  const boxHeight = 35;
+  const isAnnual = hasThreeTerms;
+  const boxHeight = isAnnual ? 40 : 35;
   
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
@@ -413,6 +414,34 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   doc.text('Observations', margin + 2, boxY + 6);
+
+  // Auto-comment based on grading rules
+  // Use last term's percentage for the comment
+  const lastTerm = student.terms[student.terms.length - 1];
+  const commentPercentage = lastTerm?.percentage || 0;
+  const autoComment = getAutoComment(commentPercentage, gradingRules);
+  
+  if (autoComment) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(autoComment, margin + 2, boxY + 12);
+  }
+
+  // For annual report cards, add Promoted/Repeated checkboxes
+  if (isAnnual) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    const checkY = boxY + 18;
+    // Promoted checkbox
+    doc.rect(margin + 2, checkY - 2.5, 3, 3);
+    doc.text('Promoted', margin + 6, checkY);
+    // Repeated checkbox
+    doc.rect(margin + 30, checkY - 2.5, 3, 3);
+    doc.text('Repeated', margin + 34, checkY);
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
