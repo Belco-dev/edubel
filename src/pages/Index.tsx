@@ -8,8 +8,9 @@ import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
 import { FAQSection } from '@/components/FAQSection';
 import { DeveloperBio } from '@/components/DeveloperBio';
+import { GradingSystem, DEFAULT_GRADING_RULES } from '@/components/GradingSystem';
 import { mergeStudentsFromTerms } from '@/lib/studentMerger';
-import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle } from '@/types/reportCard';
+import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList, ChevronDown } from 'lucide-react';
 import { WelcomeModal } from '@/components/WelcomeModal';
 const defaultTerms: TermUpload[] = [{
@@ -57,6 +58,7 @@ const Index = () => {
   const [terms, setTerms] = useState<TermUpload[]>(defaultTerms);
   const [students, setStudents] = useState<Student[]>([]);
   const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
+  const [gradingRules, setGradingRules] = useState<GradingRule[]>([...DEFAULT_GRADING_RULES]);
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('dark', 'theme-colorful');
@@ -176,13 +178,19 @@ const Index = () => {
             }}>
                 <SubjectSelector selectedSubjects={selectedSubjects} onSubjectsChange={setSelectedSubjects} />
               </div>
+
+              <div className="animate-slide-in" style={{
+              animationDelay: '0.45s'
+            }}>
+                <GradingSystem rules={gradingRules} onRulesChange={setGradingRules} />
+              </div>
             </div>
 
             {/* Right Column */}
             <div className="lg:sticky lg:top-20 lg:self-start animate-slide-in" style={{
             animationDelay: '0.5s'
           }}>
-              <ReportCardPreview students={students} school={schoolData} selectedSubjects={selectedSubjects} terms={terms} reportCardStyle={reportCardStyle} onStyleChange={setReportCardStyle} />
+              <ReportCardPreview students={students} school={schoolData} selectedSubjects={selectedSubjects} terms={terms} reportCardStyle={reportCardStyle} onStyleChange={setReportCardStyle} gradingRules={gradingRules} />
             </div>
           </div>
         </section>
