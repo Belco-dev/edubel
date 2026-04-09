@@ -53,6 +53,16 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
       };
     }
 
+    // Find "Born at" column
+    let bornAtColumnIndex = -1;
+    headers.forEach((headerStr, index) => {
+      if (!headerStr) return;
+      const headerLower = headerStr.toLowerCase().trim();
+      if (headerLower === 'born at' || headerLower === 'date of birth' || headerLower === 'dob') {
+        bornAtColumnIndex = index;
+      }
+    });
+
     // Find conduct column - format: Conduct/MAX
     let conductColumnIndex = -1;
     let conductMaxFromFile = 100;
@@ -77,6 +87,7 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
     const processedIndices = new Set<number>();
     processedIndices.add(nameColumnIndex);
     if (conductColumnIndex !== -1) processedIndices.add(conductColumnIndex);
+    if (bornAtColumnIndex !== -1) processedIndices.add(bornAtColumnIndex);
 
     headers.forEach((headerStr, index) => {
       if (processedIndices.has(index) || !headerStr) return;
@@ -143,10 +154,26 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
         ? Number(row[conductColumnIndex]) || 0
         : 0;
 
+      // Parse Born at date
+      let dateOfBirth: string | undefined;
+      if (bornAtColumnIndex !== -1 && row[bornAtColumnIndex] != null) {
+        const raw = row[bornAtColumnIndex];
+        if (raw instanceof Date) {
+          const dd = String(raw.getDate()).padStart(2, '0');
+          const mm = String(raw.getMonth() + 1).padStart(2, '0');
+          const yyyy = raw.getFullYear();
+          dateOfBirth = `${dd}/${mm}/${yyyy}`;
+        } else {
+          const str = String(raw).trim();
+          if (str) dateOfBirth = str;
+        }
+      }
+
       const percentage = totalMax > 0 ? (totalMarks / totalMax) * 100 : 0;
 
       students.push({
         fullName: fullName.trim(),
+        dateOfBirth,
         marks,
         conductMarks: conductMarksValue,
         conductMax: conductMaxFromFile,

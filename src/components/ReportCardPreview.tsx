@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive } from 'lucide-react';
-import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { getAutoComment } from '@/components/GradingSystem';
 import JSZip from 'jszip';
 import { generateReportCardWorkbook } from '@/lib/excelExporter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface ReportCardPreviewProps {
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
+  gradingRules: GradingRule[];
 }
 
 function getGradeColor(percentage: number, isBlackWhite: boolean): string {
@@ -28,7 +30,7 @@ function getGradeColor(percentage: number, isBlackWhite: boolean): string {
 }
 
 export function ReportCardPreview({ 
-  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange 
+  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules 
 }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function ReportCardPreview({
     try {
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -61,7 +63,7 @@ export function ReportCardPreview({
       for (const student of students) {
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -83,7 +85,7 @@ export function ReportCardPreview({
         const student = students[i];
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
         });
         const pdfBlob = doc.output('blob');
         pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
@@ -268,11 +270,19 @@ export function ReportCardPreview({
                 <p className="font-semibold text-sm truncate">{school.classTeacher || '—'}</p>
               </div>
             </div>
-            <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
-              <span className="font-medium text-sm">Conduct:</span>
-              <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
-                {currentStudent.conductMarks} / {currentStudent.conductMax}
-              </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
+                <span className="font-medium text-sm">Conduct:</span>
+                <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
+                  {currentStudent.conductMarks} / {currentStudent.conductMax}
+                </span>
+              </div>
+              {currentStudent.dateOfBirth && (
+                <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
+                  <span className="font-medium text-sm">Born at:</span>
+                  <span className="font-bold text-sm">{currentStudent.dateOfBirth}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -444,11 +454,30 @@ export function ReportCardPreview({
 
           {/* Observations box - same width as table */}
           <div className="px-2 sm:px-4 mb-3">
-            <div className={`border ${isBlackWhite ? 'border-foreground' : 'border-border'} w-full`}>
+            <div className={`border rounded-lg ${isBlackWhite ? 'border-foreground' : 'border-border'} w-full`}>
               <div className="grid grid-cols-2">
                 <div className={`border-r p-2 ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>
                   <span className="text-xs font-semibold block mb-1">Observations</span>
-                  <div className="h-12 sm:h-16" />
+                  {(() => {
+                    const lastTerm = currentStudent.terms[currentStudent.terms.length - 1];
+                    const comment = getAutoComment(lastTerm?.percentage || 0, gradingRules);
+                    return comment ? (
+                      <p className="text-[10px] text-muted-foreground italic mb-1">{comment}</p>
+                    ) : null;
+                  })()}
+                  {hasThreeTerms && (
+                    <div className="flex gap-3 mt-1">
+                      <label className="flex items-center gap-1 text-[10px]">
+                        <span className="inline-block w-3 h-3 border border-foreground rounded-sm" />
+                        Promoted
+                      </label>
+                      <label className="flex items-center gap-1 text-[10px]">
+                        <span className="inline-block w-3 h-3 border border-foreground rounded-sm" />
+                        Repeated
+                      </label>
+                    </div>
+                  )}
+                  {!hasThreeTerms && <div className="h-8 sm:h-12" />}
                 </div>
                 <div className="p-2">
                   <div className={`border-b pb-2 mb-2 ${isBlackWhite ? 'border-foreground' : 'border-border'}`}>

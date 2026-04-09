@@ -56,6 +56,7 @@ export interface AverageData {
 export interface Student {
   id: string;
   fullName: string;
+  dateOfBirth?: string;
   conductMarks: number;
   conductMax: number;
   terms: TermData[];
@@ -65,6 +66,12 @@ export interface Student {
   position: number;
   annualRank?: number;
   subjectAverages?: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[];
+}
+
+export interface GradingRule {
+  min: number;
+  max: number;
+  comment: string;
 }
 
 export interface TermUpload {
@@ -85,6 +92,7 @@ export interface ParsedSectionData {
 
 export interface ParsedStudent {
   fullName: string;
+  dateOfBirth?: string;
   marks: { subject: string; marks: number; maxMarks: number }[];
   conductMarks: number;
   conductMax: number;

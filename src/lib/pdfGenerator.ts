@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { getAutoComment } from '@/components/GradingSystem';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -9,6 +10,7 @@ interface GeneratePDFOptions {
   selectedSubjects: string[];
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
+  gradingRules: GradingRule[];
 }
 
 const DEFAULT_FIELD_ORDER = [
@@ -56,7 +58,7 @@ function autoFitText(doc: jsPDF, text: string, maxWidth: number, startSize: numb
 }
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
-  const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle } = options;
+  const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle, gradingRules } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -159,13 +161,16 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // Student Info with collision prevention
   doc.setTextColor(...textBlack);
   doc.setFillColor(...headerBg);
-  doc.roundedRect(margin, currentY, totalAvailWidth, 18, 2, 2, 'F');
+
+  // Calculate student info box height based on whether dateOfBirth exists
+  const hasDateOfBirth = !!student.dateOfBirth;
+  const studentInfoHeight = hasDateOfBirth ? 24 : 18;
+  doc.roundedRect(margin, currentY, totalAvailWidth, studentInfoHeight, 2, 2, 'F');
   
   const halfWidth = totalAvailWidth / 2 - 5;
   
   // Left side: Student Name (auto-fit)
   const studentLabel = 'Student Name: ';
-  const studentFullText = studentLabel + student.fullName;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   const labelWidth = doc.getTextWidth(studentLabel);
@@ -194,14 +199,21 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   autoFitText(doc, teacherName, teacherNameMaxWidth > 10 ? teacherNameMaxWidth : halfWidth * 0.6, 10);
   doc.text(teacherName, rightX + teacherLabelWidth, currentY + 8);
   
-  // Conduct
+  // Conduct & Born at row
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.text('Conduct:', margin + 3, currentY + 14);
   doc.setFont('helvetica', 'normal');
   doc.text(`${student.conductMarks} / ${student.conductMax}`, margin + 3 + doc.getTextWidth('Conduct: '), currentY + 14);
+
+  if (hasDateOfBirth) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Born at:', rightX, currentY + 14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(student.dateOfBirth || '', rightX + doc.getTextWidth('Born at: '), currentY + 14);
+  }
   
-  currentY += 22;
+  currentY += studentInfoHeight + 4;
   
   // Build table
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
@@ -387,7 +399,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   
   // Observations and Signatures box
   const boxY = finalY + 5;
-  const boxHeight = 35;
+  const isAnnual = hasThreeTerms;
+  const boxHeight = isAnnual ? 40 : 35;
   
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3);
@@ -401,6 +414,34 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
   doc.text('Observations', margin + 2, boxY + 6);
+
+  // Auto-comment based on grading rules
+  // Use last term's percentage for the comment
+  const lastTerm = student.terms[student.terms.length - 1];
+  const commentPercentage = lastTerm?.percentage || 0;
+  const autoComment = getAutoComment(commentPercentage, gradingRules);
+  
+  if (autoComment) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(autoComment, margin + 2, boxY + 12);
+  }
+
+  // For annual report cards, add Promoted/Repeated checkboxes
+  if (isAnnual) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    const checkY = boxY + 18;
+    // Promoted checkbox
+    doc.rect(margin + 2, checkY - 2.5, 3, 3);
+    doc.text('Promoted', margin + 6, checkY);
+    // Repeated checkbox
+    doc.rect(margin + 30, checkY - 2.5, 3, 3);
+    doc.text('Repeated', margin + 34, checkY);
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
   
