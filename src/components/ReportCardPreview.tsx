@@ -270,11 +270,19 @@ export function ReportCardPreview({
                 <p className="font-semibold text-sm truncate">{school.classTeacher || '—'}</p>
               </div>
             </div>
-            <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
-              <span className="font-medium text-sm">Conduct:</span>
-              <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
-                {currentStudent.conductMarks} / {currentStudent.conductMax}
-              </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
+                <span className="font-medium text-sm">Conduct:</span>
+                <span className={`font-bold ${isBlackWhite ? '' : 'text-primary'}`}>
+                  {currentStudent.conductMarks} / {currentStudent.conductMax}
+                </span>
+              </div>
+              {currentStudent.dateOfBirth && (
+                <div className={`flex items-center gap-2 p-2 sm:p-3 rounded-lg ${isBlackWhite ? 'bg-muted border border-foreground' : 'bg-accent/20'}`}>
+                  <span className="font-medium text-sm">Born at:</span>
+                  <span className="font-bold text-sm">{currentStudent.dateOfBirth}</span>
+                </div>
+              )}
             </div>
           </div>
 
