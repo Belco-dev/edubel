@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive } from 'lucide-react';
-import { Student, SchoolData, TermUpload, ReportCardStyle } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { getAutoComment } from '@/components/GradingSystem';
 import JSZip from 'jszip';
 import { generateReportCardWorkbook } from '@/lib/excelExporter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface ReportCardPreviewProps {
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
+  gradingRules: GradingRule[];
 }
 
 function getGradeColor(percentage: number, isBlackWhite: boolean): string {
@@ -28,7 +30,7 @@ function getGradeColor(percentage: number, isBlackWhite: boolean): string {
 }
 
 export function ReportCardPreview({ 
-  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange 
+  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules 
 }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
