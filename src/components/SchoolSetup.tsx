@@ -161,14 +161,18 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as SchoolData;
+        // Preserve current logo if saved data has no logo
+        if (!parsed.logo && schoolData.logo) {
+          parsed.logo = schoolData.logo;
+        }
         onSchoolDataChange(parsed);
-        toast.success('School information restored!');
+        toast.success('School information restored! You can still upload/change the logo.');
       }
     } catch {
       toast.error('Failed to restore saved data.');
     }
     setShowRestoreDialog(false);
-  }, [onSchoolDataChange]);
+  }, [onSchoolDataChange, schoolData.logo]);
 
   // Drag handlers for standard fields
   const handleFieldDragStart = (index: number) => setDragFieldIndex(index);
