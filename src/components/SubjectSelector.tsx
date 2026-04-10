@@ -68,7 +68,7 @@ export function SubjectSelector({ selectedSubjects, onSubjectsChange }: SubjectS
   const [sectionOpen, setSectionOpen] = useState(true);
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="subject-selector-section">
       <CardHeader className="bg-gradient-secondary text-secondary-foreground cursor-pointer select-none" onClick={() => setSectionOpen(!sectionOpen)}>
         <div className="flex items-center justify-between">
           <div>
