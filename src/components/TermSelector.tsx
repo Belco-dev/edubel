@@ -27,7 +27,7 @@ export function TermSelector({ terms, onTermsChange }: TermSelectorProps) {
   const selectedCount = terms.filter(t => t.selected).length;
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="term-selector-section">
       <CardHeader className="bg-gradient-to-r from-purple to-blue text-primary-foreground">
         <div className="flex items-center justify-between">
           <div>

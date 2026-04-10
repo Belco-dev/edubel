@@ -264,7 +264,7 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
     .filter((item): item is UnifiedItem => item !== null);
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="school-setup-section">
       <CardHeader
         className="bg-gradient-primary text-primary-foreground cursor-pointer select-none"
         onClick={() => setSectionOpen(!sectionOpen)}
@@ -452,7 +452,7 @@ export function SchoolSetup({ schoolData, onSchoolDataChange }: SchoolSetupProps
               <Save className="h-4 w-4 mr-2" /> Save
             </Button>
             <Button onClick={() => setShowFormatEditor(true)} variant="outline" className="border-primary text-primary hover:bg-primary/10">
-              <Send className="h-4 w-4 mr-2" /> Submit & Preview Format
+              <Send className="h-4 w-4 mr-2" /> <span id="school-setup-submit">Submit & Preview Format</span>
             </Button>
             <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5" />

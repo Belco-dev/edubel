@@ -57,7 +57,7 @@ export function GradingSystem({ rules, onRulesChange }: GradingSystemProps) {
   };
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="grading-system-section">
       <CardHeader
         className="bg-gradient-primary text-primary-foreground cursor-pointer select-none"
         onClick={() => setSectionOpen(!sectionOpen)}

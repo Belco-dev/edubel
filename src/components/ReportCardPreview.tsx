@@ -138,7 +138,7 @@ export function ReportCardPreview({
   const numStudents = school.numberOfStudents || students.length;
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="report-preview-section">
       <CardHeader className={isBlackWhite ? "bg-muted text-foreground" : "bg-gradient-hero text-primary-foreground"}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
