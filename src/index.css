@@ -292,6 +292,48 @@
 }
 
 /* Report Card Print Styles */
+/* Tutorial Guide Animations */
+@keyframes tutorial-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes tutorial-arrow-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+@keyframes tutorial-arrow-bounce-up {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.tutorial-bounce {
+  animation: tutorial-bounce 2s ease-in-out infinite;
+}
+
+.tutorial-dialog-bounce {
+  animation: tutorial-bounce 3s ease-in-out infinite;
+}
+
+.tutorial-arrow-bounce {
+  animation: tutorial-arrow-bounce 1.2s ease-in-out infinite;
+}
+
+/* Footer celebration ring */
+@keyframes footer-ring-pulse {
+  0% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.6); }
+  50% { box-shadow: 0 0 0 8px hsl(var(--primary) / 0.3); }
+  100% { box-shadow: 0 0 0 16px hsl(var(--primary) / 0); }
+}
+
+.footer-celebration-ring {
+  animation: footer-ring-pulse 1s ease-in-out 3;
+  border-radius: 1rem;
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
+
 @media print {
   .no-print {
     display: none !important;

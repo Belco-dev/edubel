@@ -101,7 +101,7 @@ export function MultiFileUpload({ terms, onTermsUpdate }: MultiFileUploadProps) 
 
   if (selectedTerms.length === 0) {
     return (
-      <Card>
+      <Card id="file-upload-section">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Upload className="w-5 h-5" />

@@ -3,6 +3,7 @@ import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Pal
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { getAutoComment } from '@/components/GradingSystem';
+import { triggerDownloadCelebration } from '@/components/TutorialGuide';
 import JSZip from 'jszip';
 import { generateReportCardWorkbook } from '@/lib/excelExporter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -72,6 +73,7 @@ export function ReportCardPreview({
       console.error('Failed to generate PDFs:', error);
     }
     setDownloadingAll(false);
+    triggerDownloadCelebration();
   };
 
   const handleDownloadZip = async () => {
@@ -112,6 +114,7 @@ export function ReportCardPreview({
     }
     setDownloadingZip(false);
     setZipProgress(0);
+    triggerDownloadCelebration();
   };
 
   if (students.length === 0) {
@@ -138,7 +141,7 @@ export function ReportCardPreview({
   const numStudents = school.numberOfStudents || students.length;
 
   return (
-    <Card className="card-hover overflow-hidden">
+    <Card className="card-hover overflow-hidden" id="report-preview-section">
       <CardHeader className={isBlackWhite ? "bg-muted text-foreground" : "bg-gradient-hero text-primary-foreground"}>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
