@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { FileSpreadsheet, X, Download, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import writeXlsxFile from 'write-excel-file';
+import writeXlsxFile from 'write-excel-file/browser';
 import { toast } from 'sonner';
 
 /**
