@@ -14,6 +14,7 @@ import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle, GradingRul
 import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList, ChevronDown } from 'lucide-react';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { TutorialGuide } from '@/components/TutorialGuide';
+import { SpreadsheetEditor } from '@/components/SpreadsheetEditor';
 const defaultTerms: TermUpload[] = [{
   id: 'term1',
   name: 'Term 1',
@@ -109,6 +110,7 @@ const Index = () => {
   return <div className="min-h-screen flex flex-col bg-background">
        <WelcomeModal />
        <TutorialGuide />
+       <SpreadsheetEditor />
        <Header theme={theme} onThemeChange={setTheme} />
       
       <main className="flex-1">
