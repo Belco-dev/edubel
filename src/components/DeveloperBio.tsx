@@ -44,7 +44,7 @@ export function DeveloperBio() {
                   A.O.B
                 </a>
               </Button>
-              <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5">
+              <Button asChild variant="destructive" size="sm" className="gap-1.5">
                 <a href="https://wa.me/250799389818" target="_blank" rel="noopener noreferrer">
                   <Heart className="h-3.5 w-3.5" />
                   Donate
