@@ -61,6 +61,19 @@ export function Footer() {
           <span className="font-semibold text-foreground">Belco</span>
           <span className="hidden sm:inline">| Call & Whatsapp +250799389818 | MOMO 1348629</span>
         </p>
+
+        <p className="text-center text-xs text-muted-foreground">
+          EduBel is a division of company{' '}
+          <a
+            href="https://belcom.carrd.co/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-primary hover:underline underline-offset-4"
+          >
+            BELCOM Ltd
+          </a>
+          {' '}- C.E.O Belco N.
+        </p>
       </div>
     </footer>
   );
