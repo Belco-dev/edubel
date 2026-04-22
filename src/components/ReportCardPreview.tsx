@@ -311,50 +311,88 @@ export function ReportCardPreview({
           />
         </div>
 
-        {/* Download All Button */}
-        <Button 
-          onClick={handleDownloadAll} 
-          disabled={downloadingAll}
+        {/* Single unified Download button — opens choice modal */}
+        <Button
+          onClick={() => setDownloadModalOpen(true)}
+          disabled={downloadingAll || downloadingZip || savingFolder || sharing}
           className={`w-full ${isBlackWhite ? 'bg-foreground text-background hover:bg-foreground/90' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'} btn-bounce`}
           size="lg"
         >
-          {downloadingAll ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Downloading All...</>
-          ) : (
-            <><FileDown className="h-5 w-5 mr-2" /> Download All ({students.length})</>
-          )}
+          <Download className="h-5 w-5 mr-2" /> Download ({students.length} report cards)
         </Button>
 
-        {/* Download ZIP Button */}
-        <Button 
-          onClick={handleDownloadZip} 
-          disabled={downloadingZip || downloadingAll}
-          variant="outline" className="w-full btn-bounce" size="lg"
-        >
-          {downloadingZip ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Creating ZIP... {zipProgress}%</>
-          ) : (
-            <><Archive className="h-5 w-5 mr-2" /> Download ZIP (PDFs + Excel)</>
-          )}
-        </Button>
+        <Dialog open={downloadModalOpen} onOpenChange={(open) => {
+          // Block closing while a long task is running
+          if (!open && (downloadingZip || savingFolder || sharing)) return;
+          setDownloadModalOpen(open);
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-display">Save or Share Report Cards</DialogTitle>
+              <DialogDescription>
+                Choose how to deliver the bundle (PDFs + Class Ranking + Excel summary).
+                Everything is generated on this device — nothing is uploaded by EduBel.
+              </DialogDescription>
+            </DialogHeader>
 
-        {/* Save to Local Folder (File System Access API) */}
-        {folderSaveSupported && (
-          <Button
-            onClick={handleSaveToFolder}
-            disabled={savingFolder || downloadingZip || downloadingAll}
-            variant="secondary"
-            className="w-full btn-bounce"
-            size="lg"
-            title="Pick a folder on your device — all PDFs, the class ranking and Excel summary will be saved into it."
-          >
-            {savingFolder ? (
-              <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving to folder... {folderProgress}%</>
-            ) : (
-              <><FolderDown className="h-5 w-5 mr-2" /> Save to Local Folder (PDFs + Ranking + Excel)</>
-            )}
-          </Button>
-        )}
+            <div className="space-y-3 pt-2">
+              {/* 1. Save to Device (ZIP download) */}
+              <Button
+                onClick={handleDownloadZip}
+                disabled={downloadingZip || savingFolder || sharing}
+                className="w-full justify-start btn-bounce"
+                size="lg"
+                variant="default"
+              >
+                {downloadingZip ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Preparing… {zipProgress}%</>
+                ) : (
+                  <><Smartphone className="h-5 w-5 mr-2" /> Save to this device (.zip)</>
+                )}
+              </Button>
+
+              {/* 2. Save to Local Folder (File System Access API, Chrome/Edge) */}
+              {folderSaveSupported && (
+                <Button
+                  onClick={handleSaveToFolder}
+                  disabled={downloadingZip || savingFolder || sharing}
+                  className="w-full justify-start btn-bounce"
+                  size="lg"
+                  variant="secondary"
+                >
+                  {savingFolder ? (
+                    <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving… {folderProgress}%</>
+                  ) : (
+                    <><FolderDown className="h-5 w-5 mr-2" /> Save to a chosen folder</>
+                  )}
+                </Button>
+              )}
+
+              {/* 3. Smart Share via native share sheet (WhatsApp, Drive, Email…) */}
+              <Button
+                onClick={handleSmartShare}
+                disabled={downloadingZip || savingFolder || sharing}
+                className="w-full justify-start btn-bounce"
+                size="lg"
+                variant="outline"
+              >
+                {sharing ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Preparing share… {shareProgress}%</>
+                ) : (
+                  <><Share2 className="h-5 w-5 mr-2" /> Share via… (WhatsApp, Drive, Email)</>
+                )}
+              </Button>
+
+              {!shareSupported && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Tip: "Share via…" works best on phones and on Chrome/Edge desktop.
+                  On unsupported browsers it will download the .zip so you can attach it manually.
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
