@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive } from 'lucide-react';
+import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown } from 'lucide-react';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
+import {
+  isLocalFolderSaveSupported,
+  pickDirectory,
+  getOrCreateSubfolder,
+  writeFileToDirectory,
+} from '@/lib/localFolderSave';
 import { getAutoComment } from '@/components/GradingSystem';
 import { triggerDownloadCelebration } from '@/components/TutorialGuide';
 import JSZip from 'jszip';
