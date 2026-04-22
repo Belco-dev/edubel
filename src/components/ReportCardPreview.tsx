@@ -265,6 +265,24 @@ export function ReportCardPreview({
           )}
         </Button>
 
+        {/* Save to Local Folder (File System Access API) */}
+        {folderSaveSupported && (
+          <Button
+            onClick={handleSaveToFolder}
+            disabled={savingFolder || downloadingZip || downloadingAll}
+            variant="secondary"
+            className="w-full btn-bounce"
+            size="lg"
+            title="Pick a folder on your device — all PDFs, the class ranking and Excel summary will be saved into it."
+          >
+            {savingFolder ? (
+              <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving to folder... {folderProgress}%</>
+            ) : (
+              <><FolderDown className="h-5 w-5 mr-2" /> Save to Local Folder (PDFs + Ranking + Excel)</>
+            )}
+          </Button>
+        )}
+
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
           <Button variant="ghost" size="sm"
