@@ -1,0 +1,132 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Student, SchoolData, TermUpload } from '@/types/reportCard';
+
+interface RankingOptions {
+  students: Student[];
+  school: SchoolData;
+  terms: TermUpload[];
+}
+
+interface RankedRow {
+  student: Student;
+  termPercents: number[];
+  average: number;
+}
+
+/**
+ * Class Ranking sort algorithm.
+ *
+ * Steps:
+ *  1. Pull each student's per-term percentage.
+ *  2. Compute the average across the selected terms.
+ *  3. Sort descending by average. If averages are equal, fall back to
+ *     alphabetical order on full name for a stable, defensible tie-break.
+ *  4. Assign 1..N ranks (use standard competition ranking for ties).
+ */
+export function buildClassRanking(students: Student[], selectedTerms: TermUpload[]): RankedRow[] {
+  const rows: RankedRow[] = students.map((student) => {
+    const termPercents = selectedTerms.map((selectedTerm) => {
+      const termData =
+        student.terms.find((termValue) => termValue.termId === selectedTerm.id) ??
+        student.terms.find((termValue) => termValue.shortName === selectedTerm.shortName);
+      return termData?.percentage ?? 0;
+    });
+    const average =
+      termPercents.length > 0
+        ? termPercents.reduce((sum, value) => sum + value, 0) / termPercents.length
+        : 0;
+    return { student, termPercents, average };
+  });
+
+  rows.sort((rowA, rowB) => {
+    if (rowB.average !== rowA.average) return rowB.average - rowA.average;
+    return rowA.student.fullName.localeCompare(rowB.student.fullName);
+  });
+
+  return rows;
+}
+
+export async function generateClassRankingPDF(options: RankingOptions): Promise<jsPDF> {
+  const { students, school, terms } = options;
+  const selectedTerms = terms.filter((termValue) => termValue.selected && (termValue.testParsedData || termValue.examParsedData));
+  const ranked = buildClassRanking(students, selectedTerms);
+  const showAverage = selectedTerms.length >= 2;
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 12;
+
+  // Title block
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(school.name || 'School', pageWidth / 2, 15, { align: 'center' });
+
+  doc.setFontSize(11);
+  doc.text(`${school.className || 'Class'} - Class Ranking`, pageWidth / 2, 22, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  if (school.termName) {
+    doc.text(school.termName, pageWidth / 2, 28, { align: 'center' });
+  }
+
+  // Build table
+  const head: string[] = ['Rank', 'Full Names'];
+  selectedTerms.forEach((termValue) => head.push(`${termValue.shortName} %`));
+  if (showAverage) head.push('Average %');
+
+  // Standard competition ranking (1, 2, 2, 4) on the value used for sorting
+  const rankValues = ranked.map((row) => (showAverage ? row.average : row.termPercents[0] ?? 0));
+  const ranks: number[] = [];
+  rankValues.forEach((value, index) => {
+    if (index === 0) {
+      ranks.push(1);
+    } else if (value === rankValues[index - 1]) {
+      ranks.push(ranks[index - 1]);
+    } else {
+      ranks.push(index + 1);
+    }
+  });
+
+  const body = ranked.map((row, index) => {
+    const cells: (string | number)[] = [ranks[index], row.student.fullName];
+    row.termPercents.forEach((p) => cells.push(`${p.toFixed(1)}%`));
+    if (showAverage) cells.push(`${row.average.toFixed(1)}%`);
+    return cells;
+  });
+
+  autoTable(doc, {
+    startY: 34,
+    head: [head],
+    body,
+    theme: 'grid',
+    styles: {
+      fontSize: 9,
+      cellPadding: 2,
+      minCellHeight: 7,
+      valign: 'middle',
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+    },
+    bodyStyles: { halign: 'center' },
+    columnStyles: {
+      0: { cellWidth: 16, halign: 'center' },
+      1: { cellWidth: 60, halign: 'left' },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  return doc;
+}
+
+export function classRankingFilename(school: SchoolData): string {
+  const className = (school.className || 'Class').replace(/\s+/g, '_');
+  return `${className}_Class_Ranking.pdf`;
+}
