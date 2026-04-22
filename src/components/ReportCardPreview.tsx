@@ -54,7 +54,13 @@ export function ReportCardPreview({
   const [zipProgress, setZipProgress] = useState(0);
   const [savingFolder, setSavingFolder] = useState(false);
   const [folderProgress, setFolderProgress] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const [shareProgress, setShareProgress] = useState(0);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const folderSaveSupported = isLocalFolderSaveSupported();
+  const shareSupported =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function';
 
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
