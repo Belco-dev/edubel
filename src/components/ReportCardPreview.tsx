@@ -45,6 +45,9 @@ export function ReportCardPreview({
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [zipProgress, setZipProgress] = useState(0);
+  const [savingFolder, setSavingFolder] = useState(false);
+  const [folderProgress, setFolderProgress] = useState(0);
+  const folderSaveSupported = isLocalFolderSaveSupported();
 
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
