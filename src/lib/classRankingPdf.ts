@@ -10,33 +10,39 @@ interface RankingOptions {
 
 interface RankedRow {
   student: Student;
-  termPercents: number[];
+  // null entries indicate the student was absent / has no data for that term.
+  termPercents: (number | null)[];
   average: number;
+  attemptedCount: number;
 }
 
 /**
  * Class Ranking sort algorithm.
  *
  * Steps:
- *  1. Pull each student's per-term percentage.
- *  2. Compute the average across the selected terms.
- *  3. Sort descending by average. If averages are equal, fall back to
+ *  1. Pull each student's per-term percentage. A missing term yields `null`
+ *     and is excluded from the average — keeping the rank fair when a
+ *     student was absent for one assessment.
+ *     Average = sum(actual marks) / number of terms attempted.
+ *  2. Sort descending by average. If averages are equal, fall back to
  *     alphabetical order on full name for a stable, defensible tie-break.
- *  4. Assign 1..N ranks (use standard competition ranking for ties).
+ *  3. Assign 1..N ranks (standard competition ranking, 1,2,2,4).
  */
 export function buildClassRanking(students: Student[], selectedTerms: TermUpload[]): RankedRow[] {
   const rows: RankedRow[] = students.map((student) => {
-    const termPercents = selectedTerms.map((selectedTerm) => {
+    const termPercents: (number | null)[] = selectedTerms.map((selectedTerm) => {
       const termData =
         student.terms.find((termValue) => termValue.termId === selectedTerm.id) ??
         student.terms.find((termValue) => termValue.shortName === selectedTerm.shortName);
-      return termData?.percentage ?? 0;
+      const pct = termData?.percentage;
+      return typeof pct === 'number' && !Number.isNaN(pct) ? pct : null;
     });
+    const attempted = termPercents.filter((value): value is number => value !== null);
     const average =
-      termPercents.length > 0
-        ? termPercents.reduce((sum, value) => sum + value, 0) / termPercents.length
+      attempted.length > 0
+        ? attempted.reduce((sum, value) => sum + value, 0) / attempted.length
         : 0;
-    return { student, termPercents, average };
+    return { student, termPercents, average, attemptedCount: attempted.length };
   });
 
   rows.sort((rowA, rowB) => {
@@ -76,8 +82,11 @@ export async function generateClassRankingPDF(options: RankingOptions): Promise<
   selectedTerms.forEach((termValue) => head.push(`${termValue.shortName} %`));
   if (showAverage) head.push('Average %');
 
-  // Standard competition ranking (1, 2, 2, 4) on the value used for sorting
-  const rankValues = ranked.map((row) => (showAverage ? row.average : row.termPercents[0] ?? 0));
+  // Standard competition ranking (1, 2, 2, 4) on the value used for sorting.
+  // When only one term exists we rank by that term's percentage; otherwise by average.
+  const rankValues = ranked.map((row) =>
+    showAverage ? row.average : (row.termPercents[0] ?? 0)
+  );
   const ranks: number[] = [];
   rankValues.forEach((value, index) => {
     if (index === 0) {
@@ -91,8 +100,11 @@ export async function generateClassRankingPDF(options: RankingOptions): Promise<
 
   const body = ranked.map((row, index) => {
     const cells: (string | number)[] = [ranks[index], row.student.fullName];
-    row.termPercents.forEach((p) => cells.push(`${p.toFixed(1)}%`));
-    if (showAverage) cells.push(`${row.average.toFixed(1)}%`);
+    // Render '—' for absent terms so the average math (which excludes them) is visible.
+    row.termPercents.forEach((p) => cells.push(p === null ? '—' : `${p.toFixed(1)}%`));
+    if (showAverage) {
+      cells.push(row.attemptedCount === 0 ? '—' : `${row.average.toFixed(1)}%`);
+    }
     return cells;
   });
 

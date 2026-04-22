@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown } from 'lucide-react';
+import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown, Share2, Smartphone } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
@@ -47,7 +54,13 @@ export function ReportCardPreview({
   const [zipProgress, setZipProgress] = useState(0);
   const [savingFolder, setSavingFolder] = useState(false);
   const [folderProgress, setFolderProgress] = useState(0);
+  const [sharing, setSharing] = useState(false);
+  const [shareProgress, setShareProgress] = useState(0);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const folderSaveSupported = isLocalFolderSaveSupported();
+  const shareSupported =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.share === 'function';
 
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
@@ -86,50 +99,109 @@ export function ReportCardPreview({
     triggerDownloadCelebration();
   };
 
+  /**
+   * Build the full report bundle as a single ZIP blob.
+   * Used by both "Save to Device" download and "Smart Share" via Web Share API.
+   * Reports progress via the supplied callback (0..100).
+   */
+  const buildReportZipBlob = async (
+    onProgress: (pct: number) => void
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const zip = new JSZip();
+    const pdfsFolder = zip.folder('PDFs');
+
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
+      const doc = await generateStudentPDF({
+        student, school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+      });
+      const pdfBlob = doc.output('blob');
+      pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
+      onProgress(Math.round(((i + 1) / students.length) * 85));
+    }
+
+    const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+    zip.file(classRankingFilename(school), rankingDoc.output('blob'));
+    onProgress(92);
+
+    const excelBlob = await generateReportCardWorkbook({
+      students, school, selectedSubjects, terms: selectedTerms,
+    });
+    zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
+    onProgress(96);
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    onProgress(100);
+    const filename = `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Report_Cards.zip`;
+    return { blob, filename };
+  };
+
   const handleDownloadZip = async () => {
     setDownloadingZip(true);
     setZipProgress(0);
     try {
-      const zip = new JSZip();
-      const pdfsFolder = zip.folder('PDFs');
-
-      for (let i = 0; i < students.length; i++) {
-        const student = students[i];
-        const doc = await generateStudentPDF({
-          student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
-        });
-        const pdfBlob = doc.output('blob');
-        pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
-        setZipProgress(Math.round(((i + 1) / students.length) * 85));
-      }
-
-      // Class Ranking PDF
-      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
-      zip.file(classRankingFilename(school), rankingDoc.output('blob'));
-      setZipProgress(92);
-
-      const excelBlob = await generateReportCardWorkbook({
-        students, school, selectedSubjects, terms: selectedTerms,
-      });
-      zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
-      setZipProgress(96);
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      setZipProgress(100);
-
-      const url = URL.createObjectURL(zipBlob);
+      const { blob, filename } = await buildReportZipBlob(setZipProgress);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Report_Cards.zip`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      setDownloadModalOpen(false);
+      triggerDownloadCelebration();
     } catch (error) {
       console.error('Failed to generate ZIP:', error);
     }
     setDownloadingZip(false);
     setZipProgress(0);
-    triggerDownloadCelebration();
+  };
+
+  /**
+   * Smart Share — uses the Web Share API (Level 2, with files) to open the
+   * device's native share sheet so the teacher can route the ZIP to WhatsApp,
+   * Google Drive, OneDrive, Email, AirDrop, etc. without any OAuth setup.
+   *
+   * Falls back to a normal download if the browser can't share files.
+   */
+  const handleSmartShare = async () => {
+    setSharing(true);
+    setShareProgress(0);
+    try {
+      const { blob, filename } = await buildReportZipBlob(setShareProgress);
+      const file = new File([blob], filename, { type: 'application/zip' });
+      const shareData: ShareData = {
+        title: `${school.className || 'Class'} Report Cards`,
+        text: `${school.className || 'Class'} report cards${school.termName ? ` — ${school.termName}` : ''}`,
+        files: [file],
+      };
+
+      const canShareFiles =
+        typeof navigator.canShare === 'function' && navigator.canShare(shareData);
+
+      if (canShareFiles) {
+        await navigator.share(shareData);
+        setDownloadModalOpen(false);
+        triggerDownloadCelebration();
+      } else {
+        // Fallback: trigger download so the user can attach manually.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        setDownloadModalOpen(false);
+        triggerDownloadCelebration();
+      }
+    } catch (error) {
+      // AbortError fires when the user dismisses the share sheet — that's fine.
+      if ((error as Error)?.name !== 'AbortError') {
+        console.error('Failed to share:', error);
+      }
+    }
+    setSharing(false);
+    setShareProgress(0);
   };
 
   const handleSaveToFolder = async () => {
@@ -172,6 +244,7 @@ export function ReportCardPreview({
         excelBlob
       );
       setFolderProgress(100);
+      setDownloadModalOpen(false);
       triggerDownloadCelebration();
     } catch (error) {
       console.error('Failed to save to folder:', error);
@@ -238,50 +311,88 @@ export function ReportCardPreview({
           />
         </div>
 
-        {/* Download All Button */}
-        <Button 
-          onClick={handleDownloadAll} 
-          disabled={downloadingAll}
+        {/* Single unified Download button — opens choice modal */}
+        <Button
+          onClick={() => setDownloadModalOpen(true)}
+          disabled={downloadingAll || downloadingZip || savingFolder || sharing}
           className={`w-full ${isBlackWhite ? 'bg-foreground text-background hover:bg-foreground/90' : 'bg-gradient-primary hover:opacity-90 text-primary-foreground'} btn-bounce`}
           size="lg"
         >
-          {downloadingAll ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Downloading All...</>
-          ) : (
-            <><FileDown className="h-5 w-5 mr-2" /> Download All ({students.length})</>
-          )}
+          <Download className="h-5 w-5 mr-2" /> Download ({students.length} report cards)
         </Button>
 
-        {/* Download ZIP Button */}
-        <Button 
-          onClick={handleDownloadZip} 
-          disabled={downloadingZip || downloadingAll}
-          variant="outline" className="w-full btn-bounce" size="lg"
-        >
-          {downloadingZip ? (
-            <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Creating ZIP... {zipProgress}%</>
-          ) : (
-            <><Archive className="h-5 w-5 mr-2" /> Download ZIP (PDFs + Excel)</>
-          )}
-        </Button>
+        <Dialog open={downloadModalOpen} onOpenChange={(open) => {
+          // Block closing while a long task is running
+          if (!open && (downloadingZip || savingFolder || sharing)) return;
+          setDownloadModalOpen(open);
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-display">Save or Share Report Cards</DialogTitle>
+              <DialogDescription>
+                Choose how to deliver the bundle (PDFs + Class Ranking + Excel summary).
+                Everything is generated on this device — nothing is uploaded by EduBel.
+              </DialogDescription>
+            </DialogHeader>
 
-        {/* Save to Local Folder (File System Access API) */}
-        {folderSaveSupported && (
-          <Button
-            onClick={handleSaveToFolder}
-            disabled={savingFolder || downloadingZip || downloadingAll}
-            variant="secondary"
-            className="w-full btn-bounce"
-            size="lg"
-            title="Pick a folder on your device — all PDFs, the class ranking and Excel summary will be saved into it."
-          >
-            {savingFolder ? (
-              <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving to folder... {folderProgress}%</>
-            ) : (
-              <><FolderDown className="h-5 w-5 mr-2" /> Save to Local Folder (PDFs + Ranking + Excel)</>
-            )}
-          </Button>
-        )}
+            <div className="space-y-3 pt-2">
+              {/* 1. Save to Device (ZIP download) */}
+              <Button
+                onClick={handleDownloadZip}
+                disabled={downloadingZip || savingFolder || sharing}
+                className="w-full justify-start btn-bounce"
+                size="lg"
+                variant="default"
+              >
+                {downloadingZip ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Preparing… {zipProgress}%</>
+                ) : (
+                  <><Smartphone className="h-5 w-5 mr-2" /> Save to this device (.zip)</>
+                )}
+              </Button>
+
+              {/* 2. Save to Local Folder (File System Access API, Chrome/Edge) */}
+              {folderSaveSupported && (
+                <Button
+                  onClick={handleSaveToFolder}
+                  disabled={downloadingZip || savingFolder || sharing}
+                  className="w-full justify-start btn-bounce"
+                  size="lg"
+                  variant="secondary"
+                >
+                  {savingFolder ? (
+                    <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving… {folderProgress}%</>
+                  ) : (
+                    <><FolderDown className="h-5 w-5 mr-2" /> Save to a chosen folder</>
+                  )}
+                </Button>
+              )}
+
+              {/* 3. Smart Share via native share sheet (WhatsApp, Drive, Email…) */}
+              <Button
+                onClick={handleSmartShare}
+                disabled={downloadingZip || savingFolder || sharing}
+                className="w-full justify-start btn-bounce"
+                size="lg"
+                variant="outline"
+              >
+                {sharing ? (
+                  <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Preparing share… {shareProgress}%</>
+                ) : (
+                  <><Share2 className="h-5 w-5 mr-2" /> Share via… (WhatsApp, Drive, Email)</>
+                )}
+              </Button>
+
+              {!shareSupported && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Tip: "Share via…" works best on phones and on Chrome/Edge desktop.
+                  On unsupported browsers it will download the .zip so you can attach it manually.
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
 
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
