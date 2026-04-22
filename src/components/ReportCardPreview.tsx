@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown } from 'lucide-react';
+import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown, Share2, Smartphone } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
