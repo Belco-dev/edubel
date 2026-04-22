@@ -376,18 +376,22 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     theme: 'grid',
     tableWidth: totalAvailWidth,
     margin: { left: margin, right: margin },
-    styles: { 
-      fontSize, 
-      cellPadding: 1, 
-      lineColor: [0, 0, 0], 
-      lineWidth: 0.2 
+    styles: {
+      fontSize,
+      cellPadding: 1.6,
+      minCellHeight: 5.5,
+      valign: 'middle',
+      lineColor: [0, 0, 0],
+      lineWidth: 0.2
     },
-    headStyles: { 
-      fillColor: isBlackWhite ? [220, 220, 220] : [240, 240, 240], 
-      textColor: [0, 0, 0], 
-      fontStyle: 'bold', 
-      halign: 'center', 
-      fontSize 
+    headStyles: {
+      fillColor: isBlackWhite ? [220, 220, 220] : [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+      valign: 'middle',
+      minCellHeight: 5,
+      fontSize
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0] },
     columnStyles,
