@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive } from 'lucide-react';
+import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown } from 'lucide-react';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
+import {
+  isLocalFolderSaveSupported,
+  pickDirectory,
+  getOrCreateSubfolder,
+  writeFileToDirectory,
+} from '@/lib/localFolderSave';
 import { getAutoComment } from '@/components/GradingSystem';
 import { triggerDownloadCelebration } from '@/components/TutorialGuide';
 import JSZip from 'jszip';
@@ -38,6 +45,9 @@ export function ReportCardPreview({
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [zipProgress, setZipProgress] = useState(0);
+  const [savingFolder, setSavingFolder] = useState(false);
+  const [folderProgress, setFolderProgress] = useState(0);
+  const folderSaveSupported = isLocalFolderSaveSupported();
 
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
@@ -91,14 +101,19 @@ export function ReportCardPreview({
         });
         const pdfBlob = doc.output('blob');
         pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
-        setZipProgress(Math.round(((i + 1) / students.length) * 90));
+        setZipProgress(Math.round(((i + 1) / students.length) * 85));
       }
+
+      // Class Ranking PDF
+      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+      zip.file(classRankingFilename(school), rankingDoc.output('blob'));
+      setZipProgress(92);
 
       const excelBlob = await generateReportCardWorkbook({
         students, school, selectedSubjects, terms: selectedTerms,
       });
       zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
-      setZipProgress(95);
+      setZipProgress(96);
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       setZipProgress(100);
@@ -116,6 +131,55 @@ export function ReportCardPreview({
     setZipProgress(0);
     triggerDownloadCelebration();
   };
+
+  const handleSaveToFolder = async () => {
+    if (!folderSaveSupported) return;
+    const parent = await pickDirectory();
+    if (!parent) return;
+
+    setSavingFolder(true);
+    setFolderProgress(0);
+    try {
+      const folderName = `${(school.className || 'Report_Cards').trim()} Report Cards`;
+      const targetFolder = await getOrCreateSubfolder(parent, folderName);
+
+      for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const doc = await generateStudentPDF({
+          student, school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        });
+        await writeFileToDirectory(
+          targetFolder,
+          `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
+          doc.output('blob')
+        );
+        setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+      }
+
+      // Ranking PDF
+      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+      await writeFileToDirectory(targetFolder, classRankingFilename(school), rankingDoc.output('blob'));
+      setFolderProgress(93);
+
+      // Excel summary
+      const excelBlob = await generateReportCardWorkbook({
+        students, school, selectedSubjects, terms: selectedTerms,
+      });
+      await writeFileToDirectory(
+        targetFolder,
+        `${school.className || 'Report_Cards'}_Summary.xlsx`,
+        excelBlob
+      );
+      setFolderProgress(100);
+      triggerDownloadCelebration();
+    } catch (error) {
+      console.error('Failed to save to folder:', error);
+    }
+    setSavingFolder(false);
+    setFolderProgress(0);
+  };
+
 
   if (students.length === 0) {
     return (
@@ -200,6 +264,24 @@ export function ReportCardPreview({
             <><Archive className="h-5 w-5 mr-2" /> Download ZIP (PDFs + Excel)</>
           )}
         </Button>
+
+        {/* Save to Local Folder (File System Access API) */}
+        {folderSaveSupported && (
+          <Button
+            onClick={handleSaveToFolder}
+            disabled={savingFolder || downloadingZip || downloadingAll}
+            variant="secondary"
+            className="w-full btn-bounce"
+            size="lg"
+            title="Pick a folder on your device — all PDFs, the class ranking and Excel summary will be saved into it."
+          >
+            {savingFolder ? (
+              <><Loader2 className="h-5 w-5 mr-2 animate-spin" /> Saving to folder... {folderProgress}%</>
+            ) : (
+              <><FolderDown className="h-5 w-5 mr-2" /> Save to Local Folder (PDFs + Ranking + Excel)</>
+            )}
+          </Button>
+        )}
 
         {/* Navigation */}
         <div className="flex items-center justify-between bg-muted/50 p-2 sm:p-3 rounded-xl">
