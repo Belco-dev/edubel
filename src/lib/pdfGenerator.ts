@@ -18,6 +18,11 @@ const DEFAULT_FIELD_ORDER = [
   'className', 'classTeacher', 'termName', 'numberOfStudents'
 ];
 
+// Fields that appear ABOVE the REPORT CARD title (general school info)
+const SCHOOL_HEADER_FIELDS = ['ministryName', 'name', 'address', 'contact', 'termName'];
+// Fields that appear BELOW the title (student/class context)
+const STUDENT_CONTEXT_FIELDS = ['className', 'classTeacher', 'numberOfStudents'];
+
 function getFieldValue(data: SchoolData, id: string): string {
   switch (id) {
     case 'ministryName': return data.ministryName || '';
