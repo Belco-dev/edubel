@@ -99,50 +99,109 @@ export function ReportCardPreview({
     triggerDownloadCelebration();
   };
 
+  /**
+   * Build the full report bundle as a single ZIP blob.
+   * Used by both "Save to Device" download and "Smart Share" via Web Share API.
+   * Reports progress via the supplied callback (0..100).
+   */
+  const buildReportZipBlob = async (
+    onProgress: (pct: number) => void
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const zip = new JSZip();
+    const pdfsFolder = zip.folder('PDFs');
+
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
+      const doc = await generateStudentPDF({
+        student, school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+      });
+      const pdfBlob = doc.output('blob');
+      pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
+      onProgress(Math.round(((i + 1) / students.length) * 85));
+    }
+
+    const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+    zip.file(classRankingFilename(school), rankingDoc.output('blob'));
+    onProgress(92);
+
+    const excelBlob = await generateReportCardWorkbook({
+      students, school, selectedSubjects, terms: selectedTerms,
+    });
+    zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
+    onProgress(96);
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    onProgress(100);
+    const filename = `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Report_Cards.zip`;
+    return { blob, filename };
+  };
+
   const handleDownloadZip = async () => {
     setDownloadingZip(true);
     setZipProgress(0);
     try {
-      const zip = new JSZip();
-      const pdfsFolder = zip.folder('PDFs');
-
-      for (let i = 0; i < students.length; i++) {
-        const student = students[i];
-        const doc = await generateStudentPDF({
-          student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
-        });
-        const pdfBlob = doc.output('blob');
-        pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
-        setZipProgress(Math.round(((i + 1) / students.length) * 85));
-      }
-
-      // Class Ranking PDF
-      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
-      zip.file(classRankingFilename(school), rankingDoc.output('blob'));
-      setZipProgress(92);
-
-      const excelBlob = await generateReportCardWorkbook({
-        students, school, selectedSubjects, terms: selectedTerms,
-      });
-      zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
-      setZipProgress(96);
-
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      setZipProgress(100);
-
-      const url = URL.createObjectURL(zipBlob);
+      const { blob, filename } = await buildReportZipBlob(setZipProgress);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Report_Cards.zip`;
+      a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
+      setDownloadModalOpen(false);
+      triggerDownloadCelebration();
     } catch (error) {
       console.error('Failed to generate ZIP:', error);
     }
     setDownloadingZip(false);
     setZipProgress(0);
-    triggerDownloadCelebration();
+  };
+
+  /**
+   * Smart Share — uses the Web Share API (Level 2, with files) to open the
+   * device's native share sheet so the teacher can route the ZIP to WhatsApp,
+   * Google Drive, OneDrive, Email, AirDrop, etc. without any OAuth setup.
+   *
+   * Falls back to a normal download if the browser can't share files.
+   */
+  const handleSmartShare = async () => {
+    setSharing(true);
+    setShareProgress(0);
+    try {
+      const { blob, filename } = await buildReportZipBlob(setShareProgress);
+      const file = new File([blob], filename, { type: 'application/zip' });
+      const shareData: ShareData = {
+        title: `${school.className || 'Class'} Report Cards`,
+        text: `${school.className || 'Class'} report cards${school.termName ? ` — ${school.termName}` : ''}`,
+        files: [file],
+      };
+
+      const canShareFiles =
+        typeof navigator.canShare === 'function' && navigator.canShare(shareData);
+
+      if (canShareFiles) {
+        await navigator.share(shareData);
+        setDownloadModalOpen(false);
+        triggerDownloadCelebration();
+      } else {
+        // Fallback: trigger download so the user can attach manually.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        setDownloadModalOpen(false);
+        triggerDownloadCelebration();
+      }
+    } catch (error) {
+      // AbortError fires when the user dismisses the share sheet — that's fine.
+      if ((error as Error)?.name !== 'AbortError') {
+        console.error('Failed to share:', error);
+      }
+    }
+    setSharing(false);
+    setShareProgress(0);
   };
 
   const handleSaveToFolder = async () => {
