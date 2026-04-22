@@ -244,6 +244,7 @@ export function ReportCardPreview({
         excelBlob
       );
       setFolderProgress(100);
+      setDownloadModalOpen(false);
       triggerDownloadCelebration();
     } catch (error) {
       console.error('Failed to save to folder:', error);
