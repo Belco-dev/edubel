@@ -82,8 +82,11 @@ export async function generateClassRankingPDF(options: RankingOptions): Promise<
   selectedTerms.forEach((termValue) => head.push(`${termValue.shortName} %`));
   if (showAverage) head.push('Average %');
 
-  // Standard competition ranking (1, 2, 2, 4) on the value used for sorting
-  const rankValues = ranked.map((row) => (showAverage ? row.average : row.termPercents[0] ?? 0));
+  // Standard competition ranking (1, 2, 2, 4) on the value used for sorting.
+  // When only one term exists we rank by that term's percentage; otherwise by average.
+  const rankValues = ranked.map((row) =>
+    showAverage ? row.average : (row.termPercents[0] ?? 0)
+  );
   const ranks: number[] = [];
   rankValues.forEach((value, index) => {
     if (index === 0) {
@@ -97,8 +100,11 @@ export async function generateClassRankingPDF(options: RankingOptions): Promise<
 
   const body = ranked.map((row, index) => {
     const cells: (string | number)[] = [ranks[index], row.student.fullName];
-    row.termPercents.forEach((p) => cells.push(`${p.toFixed(1)}%`));
-    if (showAverage) cells.push(`${row.average.toFixed(1)}%`);
+    // Render '—' for absent terms so the average math (which excludes them) is visible.
+    row.termPercents.forEach((p) => cells.push(p === null ? '—' : `${p.toFixed(1)}%`));
+    if (showAverage) {
+      cells.push(row.attemptedCount === 0 ? '—' : `${row.average.toFixed(1)}%`);
+    }
     return cells;
   });
 
