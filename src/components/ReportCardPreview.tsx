@@ -101,14 +101,19 @@ export function ReportCardPreview({
         });
         const pdfBlob = doc.output('blob');
         pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
-        setZipProgress(Math.round(((i + 1) / students.length) * 90));
+        setZipProgress(Math.round(((i + 1) / students.length) * 85));
       }
+
+      // Class Ranking PDF
+      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+      zip.file(classRankingFilename(school), rankingDoc.output('blob'));
+      setZipProgress(92);
 
       const excelBlob = await generateReportCardWorkbook({
         students, school, selectedSubjects, terms: selectedTerms,
       });
       zip.file(`${school.className || 'Report_Cards'}_Summary.xlsx`, excelBlob);
-      setZipProgress(95);
+      setZipProgress(96);
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       setZipProgress(100);
@@ -126,6 +131,55 @@ export function ReportCardPreview({
     setZipProgress(0);
     triggerDownloadCelebration();
   };
+
+  const handleSaveToFolder = async () => {
+    if (!folderSaveSupported) return;
+    const parent = await pickDirectory();
+    if (!parent) return;
+
+    setSavingFolder(true);
+    setFolderProgress(0);
+    try {
+      const folderName = `${(school.className || 'Report_Cards').trim()} Report Cards`;
+      const targetFolder = await getOrCreateSubfolder(parent, folderName);
+
+      for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const doc = await generateStudentPDF({
+          student, school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        });
+        await writeFileToDirectory(
+          targetFolder,
+          `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
+          doc.output('blob')
+        );
+        setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+      }
+
+      // Ranking PDF
+      const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
+      await writeFileToDirectory(targetFolder, classRankingFilename(school), rankingDoc.output('blob'));
+      setFolderProgress(93);
+
+      // Excel summary
+      const excelBlob = await generateReportCardWorkbook({
+        students, school, selectedSubjects, terms: selectedTerms,
+      });
+      await writeFileToDirectory(
+        targetFolder,
+        `${school.className || 'Report_Cards'}_Summary.xlsx`,
+        excelBlob
+      );
+      setFolderProgress(100);
+      triggerDownloadCelebration();
+    } catch (error) {
+      console.error('Failed to save to folder:', error);
+    }
+    setSavingFolder(false);
+    setFolderProgress(0);
+  };
+
 
   if (students.length === 0) {
     return (
