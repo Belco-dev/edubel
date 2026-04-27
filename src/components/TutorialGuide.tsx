@@ -130,6 +130,13 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  // Listen for global restart events (from sidebar menu, etc.)
+  useEffect(() => {
+    const onRestart = () => handleRestart();
+    window.addEventListener('edubel:restart-tutorial', onRestart);
+    return () => window.removeEventListener('edubel:restart-tutorial', onRestart);
+  }, []);
+
   // Called externally when download completes
   useEffect(() => {
     if (!onDownloadComplete) return;
@@ -281,4 +288,9 @@ export function triggerDownloadCelebration() {
       }, 3000);
     }
   }, 3000);
+}
+
+// Restart the tutorial from anywhere
+export function restartTutorial() {
+  window.dispatchEvent(new Event('edubel:restart-tutorial'));
 }

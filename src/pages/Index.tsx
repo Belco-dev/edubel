@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SchoolSetup } from '@/components/SchoolSetup';
 import { SubjectSelector } from '@/components/SubjectSelector';
@@ -11,249 +10,215 @@ import { DeveloperBio } from '@/components/DeveloperBio';
 import { GradingSystem, DEFAULT_GRADING_RULES } from '@/components/GradingSystem';
 import { mergeStudentsFromTerms } from '@/lib/studentMerger';
 import { SchoolData, Student, ThemeMode, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
-import { Sparkles, BookOpen, FileSpreadsheet, Download, ClipboardList, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, Menu } from 'lucide-react';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { TutorialGuide } from '@/components/TutorialGuide';
 import { SpreadsheetEditor } from '@/components/SpreadsheetEditor';
-const defaultTerms: TermUpload[] = [{
-  id: 'term1',
-  name: 'Term 1',
-  shortName: 'T1',
-  selected: false,
-  testFile: null,
-  examFile: null,
-  testParsedData: null,
-  examParsedData: null
-}, {
-  id: 'term2',
-  name: 'Term 2',
-  shortName: 'T2',
-  selected: false,
-  testFile: null,
-  examFile: null,
-  testParsedData: null,
-  examParsedData: null
-}, {
-  id: 'term3',
-  name: 'Term 3',
-  shortName: 'T3',
-  selected: false,
-  testFile: null,
-  examFile: null,
-  testParsedData: null,
-  examParsedData: null
-}];
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar, WizardStep } from '@/components/AppSidebar';
+import { Button } from '@/components/ui/button';
+import { toast } from '@/components/ui/use-toast';
+
+const defaultTerms: TermUpload[] = [
+  { id: 'term1', name: 'Term 1', shortName: 'T1', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
+  { id: 'term2', name: 'Term 2', shortName: 'T2', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
+  { id: 'term3', name: 'Term 3', shortName: 'T3', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
+];
+
+const STEP_ORDER: WizardStep[] = ['school', 'terms', 'upload', 'subjects', 'grading', 'preview'];
+
+const STEP_LABELS: Record<WizardStep, { title: string; subtitle: string }> = {
+  school: { title: 'Step 1 — School Setup', subtitle: 'Enter your school information and class details.' },
+  terms: { title: 'Step 2 — Select Terms', subtitle: 'Choose which terms to include in the report cards.' },
+  upload: { title: 'Step 3 — Upload Marks', subtitle: 'Upload Excel files with student test and exam scores.' },
+  subjects: { title: 'Step 4 — Subjects', subtitle: 'Confirm which subjects appear on the report card.' },
+  grading: { title: 'Step 5 — Grading System', subtitle: 'Customize grade ranges and auto-comments.' },
+  preview: { title: 'Step 6 — Preview & Download', subtitle: 'Review report cards then download or share.' },
+};
+
 const Index = () => {
   const [theme, setTheme] = useState<ThemeMode>('light');
+  const [currentStep, setCurrentStep] = useState<WizardStep>('school');
   const [schoolData, setSchoolData] = useState<SchoolData>({
-    name: '',
-    address: '',
-    headTeacher: '',
-    contact: '',
-    className: '',
-    termName: '',
-    logo: null,
-    classTeacher: '',
-    ministryName: ''
+    name: '', address: '', headTeacher: '', contact: '', className: '', termName: '', logo: null, classTeacher: '', ministryName: '',
   });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [terms, setTerms] = useState<TermUpload[]>(defaultTerms);
   const [students, setStudents] = useState<Student[]>([]);
   const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
   const [gradingRules, setGradingRules] = useState<GradingRule[]>([...DEFAULT_GRADING_RULES]);
+
   useEffect(() => {
     const root = document.documentElement;
     root.classList.remove('dark', 'theme-colorful');
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'colorful') {
-      root.classList.add('theme-colorful');
-    }
+    if (theme === 'dark') root.classList.add('dark');
+    else if (theme === 'colorful') root.classList.add('theme-colorful');
   }, [theme]);
 
   // Merge students when terms are updated
   useEffect(() => {
     const merged = mergeStudentsFromTerms(terms);
     setStudents(merged);
-
-    // Auto-select detected subjects
     const allSubjects = new Set<string>();
     terms.forEach((t) => {
-      if (t.testParsedData) {
-        t.testParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
-      }
-      if (t.examParsedData) {
-        t.examParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
-      }
+      if (t.testParsedData) t.testParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
+      if (t.examParsedData) t.examParsedData.detectedSubjects.forEach((sub) => allSubjects.add(sub));
     });
     if (allSubjects.size > 0 && selectedSubjects.length === 0) {
       setSelectedSubjects(Array.from(allSubjects));
     }
   }, [terms]);
-  const steps = [{
-    icon: BookOpen,
-    title: 'Setup School',
-    description: 'Enter school info'
-  }, {
-    icon: ClipboardList,
-    title: 'Select Terms',
-    description: 'Choose terms'
-  }, {
-    icon: FileSpreadsheet,
-    title: 'Upload Marks',
-    description: 'Upload Excel files'
-  }, {
-    icon: Download,
-    title: 'Download PDFs',
-    description: 'Get report cards'
-  }];
-  return <div className="min-h-screen flex flex-col bg-background">
-       <WelcomeModal />
-       <TutorialGuide />
-       <SpreadsheetEditor />
-       <Header theme={theme} onThemeChange={setTheme} />
-      
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-8 sm:py-12 md:py-16">
-          <div className="absolute inset-0 bg-gradient-hero opacity-5" />
-          <div className="absolute top-0 left-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-primary/20 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-64 sm:w-96 h-64 sm:h-96 bg-secondary/20 rounded-full blur-3xl" />
-          
-          <div className="container relative px-4">
-            <div className="text-center max-w-3xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary/10 rounded-full text-primary text-xs sm:text-sm font-medium mb-4 sm:mb-6 animate-fade-up">
-                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                Rwanda Curriculum Compatible
-              </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-4 sm:mb-6 animate-fade-up" style={{
-              animationDelay: '0.1s'
-            }}>
-                Generate Beautiful{' '}
-                <span className="gradient-text">Report Cards</span>
-              </h1>
-              <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 animate-fade-up px-4" style={{
-              animationDelay: '0.2s'
-            }}>
-                Multi-term report cards with MAX, TEST, EXAM & TOTAL columns. Works on phone, tablet & computer!
-              </p>
-              
-              {/* Steps */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mt-8 sm:mt-12">
-                {steps.map((step, index) => <div key={step.title} className="p-3 sm:p-4 rounded-xl border card-hover animate-fade-up mx-px px-[18px] sm:rounded-3xl shadow-inner border-primary-foreground bg-primary-foreground" style={{
-                animationDelay: `${0.3 + index * 0.1}s`
-              }}>
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 rounded-lg sm:rounded-xl bg-gradient-primary flex items-center justify-center">
-                      <step.icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-                    </div>
-                    <h3 className="font-semibold text-xs sm:text-sm">{step.title}</h3>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">{step.description}</p>
-                  </div>)}
+
+  const stepIndex = STEP_ORDER.indexOf(currentStep);
+
+  const goNext = () => {
+    if (stepIndex < STEP_ORDER.length - 1) {
+      setCurrentStep(STEP_ORDER[stepIndex + 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  const goBack = () => {
+    if (stepIndex > 0) {
+      setCurrentStep(STEP_ORDER[stepIndex - 1]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleCreateNew = () => {
+    if (!confirm('Start over? This will clear current students and uploads (school info is kept).')) return;
+    setTerms(defaultTerms);
+    setStudents([]);
+    setSelectedSubjects([]);
+    setCurrentStep('school');
+    toast({ title: 'New report card session', description: 'Ready to start fresh.' });
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 'school':
+        return <SchoolSetup schoolData={schoolData} onSchoolDataChange={setSchoolData} />;
+      case 'terms':
+        return <TermSelector terms={terms} onTermsChange={setTerms} />;
+      case 'upload':
+        return <MultiFileUpload terms={terms} onTermsUpdate={setTerms} />;
+      case 'subjects':
+        return <SubjectSelector selectedSubjects={selectedSubjects} onSubjectsChange={setSelectedSubjects} />;
+      case 'grading':
+        return <GradingSystem rules={gradingRules} onRulesChange={setGradingRules} />;
+      case 'preview':
+        return (
+          <ReportCardPreview
+            students={students}
+            school={schoolData}
+            selectedSubjects={selectedSubjects}
+            terms={terms}
+            reportCardStyle={reportCardStyle}
+            onStyleChange={setReportCardStyle}
+            gradingRules={gradingRules}
+          />
+        );
+    }
+  };
+
+  const isLast = stepIndex === STEP_ORDER.length - 1;
+  const isFirst = stepIndex === 0;
+  const labels = STEP_LABELS[currentStep];
+
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen flex w-full bg-background">
+        <WelcomeModal />
+        <TutorialGuide />
+        <SpreadsheetEditor />
+
+        <AppSidebar
+          theme={theme}
+          onThemeChange={setTheme}
+          currentStep={currentStep}
+          onStepChange={setCurrentStep}
+          onCreateNew={handleCreateNew}
+        />
+
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Top bar */}
+          <header className="sticky top-0 z-40 h-14 flex items-center gap-2 border-b border-border/40 bg-background/95 backdrop-blur px-3">
+            <SidebarTrigger className="shrink-0">
+              <Menu className="h-5 w-5" />
+            </SidebarTrigger>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm sm:text-base font-semibold truncate">{labels.title}</h2>
+              <p className="text-[11px] text-muted-foreground truncate hidden sm:block">{labels.subtitle}</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-full text-[11px] font-medium">
+              <Sparkles className="h-3 w-3" />
+              {stepIndex + 1} / {STEP_ORDER.length}
+            </div>
+          </header>
+
+          <main className="flex-1">
+            {/* Progress bar */}
+            <div className="sticky top-14 z-30 bg-background/95 backdrop-blur border-b border-border/40">
+              <div className="container px-4 py-2">
+                <div className="flex items-center gap-1">
+                  {STEP_ORDER.map((s, i) => (
+                    <div
+                      key={s}
+                      className={`h-1.5 flex-1 rounded-full transition-colors ${
+                        i <= stepIndex ? 'bg-gradient-primary' : 'bg-muted'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* Main Content */}
-        <section className="py-8 sm:py-12 container px-4">
-          <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-            {/* Left Column */}
-            <div className="space-y-6 sm:space-y-8">
-              <div className="animate-slide-in" style={{
-              animationDelay: '0.1s'
-            }}>
-                <SchoolSetup schoolData={schoolData} onSchoolDataChange={setSchoolData} />
-              </div>
-              
-              <div className="animate-slide-in" style={{
-              animationDelay: '0.2s'
-            }}>
-                <TermSelector terms={terms} onTermsChange={setTerms} />
-              </div>
-              
-              <div className="animate-slide-in" style={{
-              animationDelay: '0.3s'
-            }}>
-                <MultiFileUpload terms={terms} onTermsUpdate={setTerms} />
-              </div>
-              
-              <div className="animate-slide-in" style={{
-              animationDelay: '0.4s'
-            }}>
-                <SubjectSelector selectedSubjects={selectedSubjects} onSubjectsChange={setSelectedSubjects} />
-              </div>
+            {/* Step content */}
+            <section className="container px-4 py-6 sm:py-8 animate-fade-up" key={currentStep}>
+              {renderStep()}
+            </section>
 
-              <div className="animate-slide-in" style={{
-              animationDelay: '0.45s'
-            }}>
-                <GradingSystem rules={gradingRules} onRulesChange={setGradingRules} />
+            {/* Nav buttons */}
+            <section className="container px-4 pb-8">
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-border/40">
+                <Button
+                  variant="outline"
+                  onClick={goBack}
+                  disabled={isFirst}
+                  className="gap-2 btn-bounce"
+                  size="lg"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
+
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {labels.title}
+                </span>
+
+                <Button
+                  onClick={goNext}
+                  disabled={isLast}
+                  className="gap-2 bg-gradient-primary text-primary-foreground btn-bounce"
+                  size="lg"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
+            </section>
+
+            {/* FAQ anchor (accessible from sidebar) */}
+            <div id="faq">
+              <FAQSection />
             </div>
+          </main>
 
-            {/* Right Column */}
-            <div className="lg:sticky lg:top-20 lg:self-start animate-slide-in" style={{
-            animationDelay: '0.5s'
-          }}>
-              <ReportCardPreview students={students} school={schoolData} selectedSubjects={selectedSubjects} terms={terms} reportCardStyle={reportCardStyle} onStyleChange={setReportCardStyle} gradingRules={gradingRules} />
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section - Collapsible */}
-        {students.length === 0 && <FeaturesSection />}
-
-        {/* FAQ Section */}
-        <FAQSection />
-      </main>
-
-      {/* Developer Bio */}
-      <DeveloperBio />
-      <Footer />
-    </div>;
+          <DeveloperBio />
+          <Footer />
+        </div>
+      </div>
+    </SidebarProvider>
+  );
 };
 
-function FeaturesSection() {
-  const [open, setOpen] = useState(true);
-  return (
-    <section className="py-12 sm:py-16 bg-muted/30">
-      <div className="container px-4">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-center gap-2 mb-8 sm:mb-12 group"
-        >
-          <h2 className="text-2xl sm:text-3xl font-display font-bold text-center">
-            Why Choose <span className="gradient-text">EDUBEL</span>?
-          </h2>
-          <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-        </button>
-        {open && (
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {[{
-              title: 'Multi-Term Support',
-              description: 'Generate reports with MAX, TEST, EXAM, and TOTAL columns for multiple terms.',
-              color: 'bg-green/20 text-green'
-            }, {
-              title: 'Works Everywhere',
-              description: 'Responsive design works perfectly on phones, tablets, and computers.',
-              color: 'bg-blue/20 text-blue'
-            }, {
-              title: 'No Data Saved',
-              description: 'Your student data stays on your device. We never store anything.',
-              color: 'bg-purple/20 text-purple'
-            }].map((feature) => (
-              <div key={feature.title} className="p-4 sm:p-6 bg-card rounded-xl sm:rounded-2xl border border-border card-hover">
-                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${feature.color} flex items-center justify-center mb-3 sm:mb-4`}>
-                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
-                <h3 className="font-display font-semibold text-base sm:text-lg mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
 export default Index;
