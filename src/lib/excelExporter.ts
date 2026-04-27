@@ -83,20 +83,26 @@ export async function generateReportCardWorkbook(options: ExportOptions): Promis
     allRows.push(row);
   }
 
-  const sheetName = (school.className || 'Report Cards').substring(0, 31);
+  // Excel forbids : \ / ? * [ ] in sheet names, and caps length at 31 chars.
+  const sheetName =
+    (school.className || 'Report Cards')
+      .replace(/[:\\/?*\[\]]/g, ' ')
+      .trim()
+      .substring(0, 31) || 'Report Cards';
+
   const columns = headers.map((header, index) => ({
     width: index === 1 ? 30 : Math.max(header.length + 2, 10),
   }));
 
-  const output = await writeXlsxFile(allRows as any, {
+  // write-excel-file's /browser entry returns a Blob directly — do NOT pass
+  // `buffer: true` (Node-only) and do NOT re-wrap the result in another Blob,
+  // or Excel will see a corrupted file ("unable to open" / repair dialog).
+  const blob = (await writeXlsxFile(allRows as any, {
     sheet: sheetName,
     columns,
-    buffer: true,
-  } as any) as unknown as ArrayBuffer;
+  } as any)) as unknown as Blob;
 
-  return new Blob([output], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
+  return blob;
 }
 
 function getSubjects(students: Student[], selectedTerms: TermUpload[]): string[] {
