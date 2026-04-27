@@ -289,3 +289,8 @@ export function triggerDownloadCelebration() {
     }
   }, 3000);
 }
+
+// Restart the tutorial from anywhere
+export function restartTutorial() {
+  window.dispatchEvent(new Event('edubel:restart-tutorial'));
+}
