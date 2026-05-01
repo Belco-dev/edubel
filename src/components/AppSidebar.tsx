@@ -1,4 +1,5 @@
-import { GraduationCap, Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2 } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2 } from 'lucide-react';
+import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
   SidebarContent,
@@ -64,16 +65,15 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
         <div className="flex items-center gap-2 px-2 py-2">
-          <div className="relative shrink-0">
-            <div className="absolute inset-0 bg-gradient-primary rounded-lg blur-md opacity-50" />
-            <div className="relative bg-gradient-primary p-2 rounded-lg">
-              <GraduationCap className="h-5 w-5 text-primary-foreground" />
-            </div>
-          </div>
+          <img
+            src={edubelLogo}
+            alt="EduBel logo"
+            className="h-9 w-9 shrink-0 object-contain rounded-md bg-white p-0.5"
+          />
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-lg font-display font-bold gradient-text leading-none">EDUBEL</h1>
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">Report Card Generator</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">A Division of Belcom</p>
             </div>
           )}
         </div>
