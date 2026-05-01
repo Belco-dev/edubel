@@ -63,7 +63,7 @@ export function ReportCardPreview({
   const currentStudent = students[currentIndex];
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   const isBlackWhite = reportCardStyle === 'blackWhite';
-  const hasThreeTerms = selectedTerms.length === 3;
+  
 
   // Render the preview as the EXACT PDF that will be downloaded. Regenerate
   // whenever the inputs that affect the PDF change so the user can trust that
