@@ -144,9 +144,11 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const boxStartY = currentY;
   const boxPadding = 5;
 
-  // Compute heights
+  // Compute heights — logo wants up to 34mm so reserve enough vertical space
   const schoolLineHeight = 5.5;
-  const schoolBlockHeight = boxPadding + schoolFields.length * schoolLineHeight + 3;
+  const minLogoSlot = school.logo ? 36 : 0;
+  const schoolTextHeight = boxPadding + schoolFields.length * schoolLineHeight + 3;
+  const schoolBlockHeight = Math.max(schoolTextHeight, minLogoSlot);
   const titleBlockHeight = 14; // REPORT CARD with two boundary lines
   const hasDateOfBirth = !!student.dateOfBirth;
   // Student name row + (conduct/born row) + (class/teacher/students row)
@@ -163,12 +165,15 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // ----- School info block (top) -----
   doc.setTextColor(...textBlack);
   let schoolY = boxStartY + boxPadding + 2;
-  // Reserve right side for logo
-  const logoSize = Math.min(schoolBlockHeight - 4, 26);
+  // Bigger, clearly readable logo on the right side. No bounding box drawn —
+  // jsPDF.addImage preserves the original PNG transparency so any non-square
+  // crop sits naturally on the page without an extra border.
+  const logoSize = school.logo ? Math.min(schoolBlockHeight - 4, 34) : 0;
   const logoX = pageWidth - margin - logoSize - 2;
   if (school.logo) {
     try {
-      doc.addImage(school.logo, 'PNG', logoX, boxStartY + 2, logoSize, logoSize);
+      const processedLogo = await processLogo(school.logo, isBlackWhite);
+      doc.addImage(processedLogo, 'PNG', logoX, boxStartY + 2, logoSize, logoSize);
     } catch {
       // ignore
     }
