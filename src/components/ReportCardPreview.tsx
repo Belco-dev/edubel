@@ -16,7 +16,7 @@ import {
   getOrCreateSubfolder,
   writeFileToDirectory,
 } from '@/lib/localFolderSave';
-import { getAutoComment } from '@/components/GradingSystem';
+
 import { triggerDownloadCelebration } from '@/components/TutorialGuide';
 import JSZip from 'jszip';
 import { generateReportCardWorkbook } from '@/lib/excelExporter';
