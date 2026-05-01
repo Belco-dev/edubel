@@ -62,6 +62,40 @@ function autoFitText(doc: jsPDF, text: string, maxWidth: number, startSize: numb
   return size;
 }
 
+// Convert a logo data URL to grayscale (for black & white report cards) and
+// strip any transparent padding so the on-paper logo has no extra boundary
+// regardless of crop shape.
+async function processLogo(dataUrl: string, blackAndWhite: boolean): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(dataUrl);
+        ctx.drawImage(img, 0, 0);
+        if (blackAndWhite) {
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = imgData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+            d[i] = d[i + 1] = d[i + 2] = gray;
+          }
+          ctx.putImageData(imgData, 0, 0);
+        }
+        resolve(canvas.toDataURL('image/png'));
+      } catch {
+        resolve(dataUrl);
+      }
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
   const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle, gradingRules } = options;
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
