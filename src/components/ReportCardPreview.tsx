@@ -57,6 +57,9 @@ export function ReportCardPreview({
   const [sharing, setSharing] = useState(false);
   const [shareProgress, setShareProgress] = useState(0);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const previewUrlRef = useRef<string | null>(null);
   const folderSaveSupported = isLocalFolderSaveSupported();
   const shareSupported =
     typeof navigator !== 'undefined' &&
@@ -66,6 +69,47 @@ export function ReportCardPreview({
   const selectedTerms = terms.filter(t => t.selected && (t.testParsedData || t.examParsedData));
   const isBlackWhite = reportCardStyle === 'blackWhite';
   const hasThreeTerms = selectedTerms.length === 3;
+
+  // Render the preview as the EXACT PDF that will be downloaded. Regenerate
+  // whenever the inputs that affect the PDF change so the user can trust that
+  // what they see is what they get.
+  useEffect(() => {
+    if (!currentStudent) return;
+    let cancelled = false;
+    setPreviewLoading(true);
+    (async () => {
+      try {
+        const doc = await generateStudentPDF({
+          student: currentStudent,
+          school,
+          totalStudents: students.length,
+          selectedSubjects,
+          terms: selectedTerms,
+          reportCardStyle,
+          gradingRules,
+        });
+        if (cancelled) return;
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = url;
+        setPreviewUrl(url);
+      } catch (err) {
+        console.error('Preview render failed:', err);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, students, school, selectedSubjects, terms, reportCardStyle, gradingRules]);
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
+
 
   const handleDownloadSingle = async (student: Student) => {
     setDownloading(student.id);
