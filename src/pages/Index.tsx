@@ -55,6 +55,17 @@ const Index = () => {
     else if (theme === 'colorful') root.classList.add('theme-colorful');
   }, [theme]);
 
+  // Tutorial drives the wizard: when the user advances or closes the tutorial,
+  // it dispatches `edubel:goto-step` so the right page is on screen.
+  useEffect(() => {
+    const onGoto = (e: Event) => {
+      const detail = (e as CustomEvent<{ step: WizardStep }>).detail;
+      if (detail?.step) setCurrentStep(detail.step);
+    };
+    window.addEventListener('edubel:goto-step', onGoto);
+    return () => window.removeEventListener('edubel:goto-step', onGoto);
+  }, []);
+
   // Merge students when terms are updated
   useEffect(() => {
     const merged = mergeStudentsFromTerms(terms);

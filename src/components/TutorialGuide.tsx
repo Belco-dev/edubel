@@ -2,54 +2,60 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ArrowDown, ArrowUp, ArrowRight, ChevronRight, ChevronLeft, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+type WizardStepId = 'school' | 'terms' | 'upload' | 'subjects' | 'grading' | 'preview';
+
 interface TutorialStep {
   targetId: string;
+  wizardStep: WizardStepId;
   title: string;
   description: string;
   arrowDirection: 'down' | 'up' | 'right' | 'left';
 }
 
+// Each tutorial step lives on a specific wizard page. When the user advances
+// the tutorial, we automatically switch the wizard to that page so the
+// arrow always points to something visible.
 const TUTORIAL_STEPS: TutorialStep[] = [
   {
     targetId: 'school-setup-section',
+    wizardStep: 'school',
     title: 'Step 1: School Setup',
-    description: 'Fill in your school details like name, address, head teacher, and class info. You can also upload your school logo. Empty fields won\'t appear on the report card.',
+    description: 'Fill in your school details — name, address, head teacher, and class info. Upload your logo. Empty fields are skipped on the report card.',
     arrowDirection: 'down',
   },
   {
-    targetId: 'school-setup-submit',
-    title: 'Step 2: Submit & Preview Format',
-    description: 'Click this button to open the Report Card Format Editor. You can drag fields to reorder them, edit table column titles, and customize the layout.',
-    arrowDirection: 'up',
-  },
-  {
     targetId: 'term-selector-section',
-    title: 'Step 3: Select Terms',
-    description: 'Choose which terms to include in your report card. You can select one term or multiple terms for a combined report.',
+    wizardStep: 'terms',
+    title: 'Step 2: Select Terms',
+    description: 'Choose which terms to include — one term, or multiple terms for a combined annual report.',
     arrowDirection: 'down',
   },
   {
     targetId: 'file-upload-section',
-    title: 'Step 4: Upload Marks',
-    description: 'Upload Excel files containing student test and exam marks for each selected term. The system will automatically detect subjects and student names.',
+    wizardStep: 'upload',
+    title: 'Step 3: Upload Marks',
+    description: 'Upload Excel files with student test and exam marks for each selected term. Subjects and student names are detected automatically.',
     arrowDirection: 'down',
   },
   {
     targetId: 'subject-selector-section',
-    title: 'Step 5: Select Subjects',
-    description: 'Review and adjust the detected subjects. You can add or remove subjects that appear on the report card.',
+    wizardStep: 'subjects',
+    title: 'Step 4: Confirm Subjects',
+    description: 'Review the detected subjects. Tick or untick to control what appears on the report card.',
     arrowDirection: 'down',
   },
   {
     targetId: 'grading-system-section',
-    title: 'Step 6: Grading System',
-    description: 'Customize the grading ranges and auto-comments. The default grading is already set, but you can edit marks ranges and comments to match your school\'s system.',
+    wizardStep: 'grading',
+    title: 'Step 5: Grading System',
+    description: 'Customize grading ranges and the auto-comments printed on each report card.',
     arrowDirection: 'down',
   },
   {
     targetId: 'report-preview-section',
-    title: 'Step 7: Preview & Download',
-    description: 'Preview each student\'s report card here. Use the Download PDF or Download All as ZIP buttons to get your finished report cards!',
+    wizardStep: 'preview',
+    title: 'Step 6: Preview & Download',
+    description: 'Preview each card — it matches the PDF exactly. Use the Download button to save or share.',
     arrowDirection: 'down',
   },
 ];
@@ -94,10 +100,20 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
     }
   }, [active, currentStep]);
 
+  // When the active tutorial step changes, switch the wizard to the matching
+  // page so the highlighted target actually exists in the DOM.
   useEffect(() => {
     if (!active) return;
-    // Delay to allow scroll
-    const timer = setTimeout(updatePosition, 400);
+    const step = TUTORIAL_STEPS[currentStep];
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: step.wizardStep } })
+    );
+  }, [active, currentStep]);
+
+  useEffect(() => {
+    if (!active) return;
+    // Wait a bit for the wizard page to mount before measuring the target.
+    const timer = setTimeout(updatePosition, 450);
     window.addEventListener('resize', updatePosition);
     return () => {
       clearTimeout(timer);
@@ -108,6 +124,11 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
   const handleClose = () => {
     setActive(false);
     localStorage.setItem(STORAGE_KEY, 'true');
+    // Send the user back to the first wizard page after the tutorial ends.
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: 'school' } })
+    );
+    setCurrentStep(0);
   };
 
   const handleNext = () => {
@@ -128,6 +149,9 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
     setCurrentStep(0);
     setActive(true);
     localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: 'school' } })
+    );
   };
 
   // Listen for global restart events (from sidebar menu, etc.)
