@@ -36,13 +36,8 @@ interface ReportCardPreviewProps {
   gradingRules: GradingRule[];
 }
 
-function getGradeColor(percentage: number, isBlackWhite: boolean): string {
-  if (isBlackWhite) return 'text-foreground';
-  if (percentage >= 80) return 'text-green';
-  if (percentage >= 60) return 'text-blue';
-  if (percentage >= 40) return 'text-yellow';
-  return 'text-destructive';
-}
+
+
 
 export function ReportCardPreview({ 
   students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules 
