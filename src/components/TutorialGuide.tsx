@@ -100,10 +100,20 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
     }
   }, [active, currentStep]);
 
+  // When the active tutorial step changes, switch the wizard to the matching
+  // page so the highlighted target actually exists in the DOM.
   useEffect(() => {
     if (!active) return;
-    // Delay to allow scroll
-    const timer = setTimeout(updatePosition, 400);
+    const step = TUTORIAL_STEPS[currentStep];
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: step.wizardStep } })
+    );
+  }, [active, currentStep]);
+
+  useEffect(() => {
+    if (!active) return;
+    // Wait a bit for the wizard page to mount before measuring the target.
+    const timer = setTimeout(updatePosition, 450);
     window.addEventListener('resize', updatePosition);
     return () => {
       clearTimeout(timer);
@@ -114,6 +124,11 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
   const handleClose = () => {
     setActive(false);
     localStorage.setItem(STORAGE_KEY, 'true');
+    // Send the user back to the first wizard page after the tutorial ends.
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: 'school' } })
+    );
+    setCurrentStep(0);
   };
 
   const handleNext = () => {
@@ -134,6 +149,9 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
     setCurrentStep(0);
     setActive(true);
     localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(
+      new CustomEvent('edubel:goto-step', { detail: { step: 'school' } })
+    );
   };
 
   // Listen for global restart events (from sidebar menu, etc.)
