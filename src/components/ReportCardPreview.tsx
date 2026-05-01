@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, Eye, FileDown, Users, ChevronLeft, ChevronRight, Loader2, Palette, Archive, FolderDown, Share2, Smartphone } from 'lucide-react';
 import {
   Dialog,
