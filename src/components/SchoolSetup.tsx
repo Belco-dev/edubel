@@ -91,10 +91,10 @@ const FIELD_DEFS: FieldDef[] = [
   },
   {
     id: 'classTeacher',
-    label: 'Class Teacher Name',
+    label: 'Head Teacher Name',
     icon: GraduationCap,
     iconColor: 'text-purple',
-    placeholder: 'Enter class teacher name',
+    placeholder: 'Enter head teacher name',
     getValue: d => d.classTeacher || '',
     setValue: (d, v) => ({ ...d, classTeacher: v }),
   },

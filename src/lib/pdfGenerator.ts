@@ -44,7 +44,7 @@ function getFieldLabel(id: string): string {
     address: '',
     contact: '',
     className: 'Class:',
-    classTeacher: 'Class Teacher:',
+    classTeacher: 'Head Teacher:',
     termName: 'Term:',
     numberOfStudents: 'Number of Students:',
   };
