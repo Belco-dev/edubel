@@ -314,12 +314,7 @@ export function ReportCardPreview({
     );
   }
 
-  const allSubjects = currentStudent.terms[0]?.subjects || [];
-  const filteredSubjects = allSubjects.filter(s => 
-    selectedSubjects.length === 0 || selectedSubjects.includes(s.subject)
-  );
 
-  const numStudents = school.numberOfStudents || students.length;
 
   return (
     <Card className="card-hover overflow-hidden" id="report-preview-section">
