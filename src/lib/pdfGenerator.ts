@@ -15,13 +15,13 @@ interface GeneratePDFOptions {
 
 const DEFAULT_FIELD_ORDER = [
   'ministryName', 'name', 'address', 'contact',
-  'className', 'classTeacher', 'termName', 'numberOfStudents'
+  'academicYear', 'className', 'classTeacher', 'termName', 'numberOfStudents'
 ];
 
 // Fields that appear ABOVE the REPORT CARD title (general school info)
 const SCHOOL_HEADER_FIELDS = ['ministryName', 'name', 'address', 'contact', 'termName'];
 // Fields that appear BELOW the title (student/class context)
-const STUDENT_CONTEXT_FIELDS = ['className', 'classTeacher', 'numberOfStudents'];
+const STUDENT_CONTEXT_FIELDS = ['className', 'classTeacher', 'academicYear', 'numberOfStudents'];
 
 function getFieldValue(data: SchoolData, id: string): string {
   switch (id) {
@@ -33,6 +33,7 @@ function getFieldValue(data: SchoolData, id: string): string {
     case 'classTeacher': return data.classTeacher || '';
     case 'termName': return data.termName || '';
     case 'numberOfStudents': return data.numberOfStudents?.toString() || '';
+    case 'academicYear': return data.academicYear || '';
     default: return '';
   }
 }
@@ -47,6 +48,7 @@ function getFieldLabel(id: string): string {
     classTeacher: 'Head Teacher:',
     termName: 'Term:',
     numberOfStudents: 'Number of Students:',
+    academicYear: 'Academic Year:',
   };
   return labels[id] ?? '';
 }
