@@ -111,9 +111,25 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Home">
+                  <Link to="/">
+                    <Home className="h-4 w-4" />
+                    {!collapsed && <span>Home</span>}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={onCreateNew} tooltip="Create New">
                   <RotateCcw className="h-4 w-4" />
                   {!collapsed && <span>Create New</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Scan Report Card">
+                  <Link to="/scan">
+                    <ScanLine className="h-4 w-4" />
+                    {!collapsed && <span>Scan Report Card</span>}
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
