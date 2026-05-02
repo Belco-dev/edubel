@@ -1,4 +1,4 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2 } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
@@ -31,7 +31,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-export type WizardStep = 'school' | 'terms' | 'upload' | 'subjects' | 'grading' | 'preview';
+export type WizardStep = 'school' | 'terms' | 'upload' | 'grading' | 'preview';
 
 interface AppSidebarProps {
   theme: ThemeMode;
@@ -45,7 +45,6 @@ const STEPS: { id: WizardStep; title: string; icon: typeof BookOpen }[] = [
   { id: 'school', title: 'School Setup', icon: BookOpen },
   { id: 'terms', title: 'Select Terms', icon: ClipboardList },
   { id: 'upload', title: 'Upload Marks', icon: FileSpreadsheet },
-  { id: 'subjects', title: 'Subjects', icon: Sparkles },
   { id: 'grading', title: 'Grading', icon: Sparkles },
   { id: 'preview', title: 'Preview & Download', icon: Download },
 ];
