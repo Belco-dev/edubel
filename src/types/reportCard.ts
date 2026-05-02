@@ -16,6 +16,7 @@ export interface SchoolData {
   classTeacher: string;
   ministryName?: string;
   numberOfStudents?: number;
+  academicYear?: string;
   fieldOrder?: string[];
 }
 

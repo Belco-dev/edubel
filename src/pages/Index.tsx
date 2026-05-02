@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Footer } from '@/components/Footer';
 import { SchoolSetup } from '@/components/SchoolSetup';
-import { SubjectSelector } from '@/components/SubjectSelector';
 import { TermSelector } from '@/components/TermSelector';
 import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
@@ -25,15 +24,14 @@ const defaultTerms: TermUpload[] = [
   { id: 'term3', name: 'Term 3', shortName: 'T3', selected: false, testFile: null, examFile: null, testParsedData: null, examParsedData: null },
 ];
 
-const STEP_ORDER: WizardStep[] = ['school', 'terms', 'upload', 'subjects', 'grading', 'preview'];
+const STEP_ORDER: WizardStep[] = ['school', 'terms', 'upload', 'grading', 'preview'];
 
 const STEP_LABELS: Record<WizardStep, { title: string; subtitle: string }> = {
   school: { title: 'Step 1 — School Setup', subtitle: 'Enter your school information and class details.' },
   terms: { title: 'Step 2 — Select Terms', subtitle: 'Choose which terms to include in the report cards.' },
-  upload: { title: 'Step 3 — Upload Marks', subtitle: 'Upload Excel files with student test and exam scores.' },
-  subjects: { title: 'Step 4 — Subjects', subtitle: 'Confirm which subjects appear on the report card.' },
-  grading: { title: 'Step 5 — Grading System', subtitle: 'Customize grade ranges and auto-comments.' },
-  preview: { title: 'Step 6 — Preview & Download', subtitle: 'Review report cards then download or share.' },
+  upload: { title: 'Step 3 — Upload Marks', subtitle: 'Upload Excel files with student test and exam scores. Subjects are detected automatically.' },
+  grading: { title: 'Step 4 — Grading System', subtitle: 'Customize grade ranges and auto-comments.' },
+  preview: { title: 'Step 5 — Preview & Download', subtitle: 'Review report cards then download or share.' },
 };
 
 const Index = () => {
@@ -112,8 +110,6 @@ const Index = () => {
         return <TermSelector terms={terms} onTermsChange={setTerms} />;
       case 'upload':
         return <MultiFileUpload terms={terms} onTermsUpdate={setTerms} />;
-      case 'subjects':
-        return <SubjectSelector selectedSubjects={selectedSubjects} onSubjectsChange={setSelectedSubjects} />;
       case 'grading':
         return <GradingSystem rules={gradingRules} onRulesChange={setGradingRules} />;
       case 'preview':
