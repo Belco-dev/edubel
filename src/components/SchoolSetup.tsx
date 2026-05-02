@@ -14,7 +14,7 @@ const STORAGE_KEY = 'edubel_school_data';
 
 const DEFAULT_FIELD_ORDER = [
   'ministryName', 'name', 'address', 'contact',
-  'className', 'classTeacher', 'termName', 'numberOfStudents'
+  'academicYear', 'className', 'classTeacher', 'termName', 'numberOfStudents'
 ];
 
 // Ensure fieldOrder includes all standard fields + custom_N entries
@@ -97,6 +97,15 @@ const FIELD_DEFS: FieldDef[] = [
     placeholder: 'Enter head teacher name',
     getValue: d => d.classTeacher || '',
     setValue: (d, v) => ({ ...d, classTeacher: v }),
+  },
+  {
+    id: 'academicYear',
+    label: 'Academic Year',
+    icon: Calendar,
+    iconColor: 'text-coral',
+    placeholder: 'e.g., 2025-2026',
+    getValue: d => d.academicYear || '',
+    setValue: (d, v) => ({ ...d, academicYear: v }),
   },
   {
     id: 'termName',
