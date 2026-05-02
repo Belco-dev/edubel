@@ -111,8 +111,6 @@ const Index = () => {
         return <TermSelector terms={terms} onTermsChange={setTerms} />;
       case 'upload':
         return <MultiFileUpload terms={terms} onTermsUpdate={setTerms} />;
-      case 'subjects':
-        return <SubjectSelector selectedSubjects={selectedSubjects} onSubjectsChange={setSelectedSubjects} />;
       case 'grading':
         return <GradingSystem rules={gradingRules} onRulesChange={setGradingRules} />;
       case 'preview':
