@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Footer } from '@/components/Footer';
 import { SchoolSetup } from '@/components/SchoolSetup';
-import { SubjectSelector } from '@/components/SubjectSelector';
 import { TermSelector } from '@/components/TermSelector';
 import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { ReportCardPreview } from '@/components/ReportCardPreview';
