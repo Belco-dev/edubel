@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, ArrowDown, ArrowUp, ArrowRight, ChevronRight, ChevronLeft, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-type WizardStepId = 'school' | 'terms' | 'upload' | 'subjects' | 'grading' | 'preview';
+type WizardStepId = 'school' | 'terms' | 'upload' | 'grading' | 'preview';
 
 interface TutorialStep {
   targetId: string;
@@ -20,7 +20,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     targetId: 'school-setup-section',
     wizardStep: 'school',
     title: 'Step 1: School Setup',
-    description: 'Fill in your school details — name, address, head teacher, and class info. Upload your logo. Empty fields are skipped on the report card.',
+    description: 'Fill in your school details — name, address, head teacher, academic year, and class info. Upload your logo. Empty fields are skipped on the report card.',
     arrowDirection: 'down',
   },
   {
@@ -38,24 +38,17 @@ const TUTORIAL_STEPS: TutorialStep[] = [
     arrowDirection: 'down',
   },
   {
-    targetId: 'subject-selector-section',
-    wizardStep: 'subjects',
-    title: 'Step 4: Confirm Subjects',
-    description: 'Review the detected subjects. Tick or untick to control what appears on the report card.',
-    arrowDirection: 'down',
-  },
-  {
     targetId: 'grading-system-section',
     wizardStep: 'grading',
-    title: 'Step 5: Grading System',
+    title: 'Step 4: Grading System',
     description: 'Customize grading ranges and the auto-comments printed on each report card.',
     arrowDirection: 'down',
   },
   {
     targetId: 'report-preview-section',
     wizardStep: 'preview',
-    title: 'Step 6: Preview & Download',
-    description: 'Preview each card — it matches the PDF exactly. Use the Download button to save or share.',
+    title: 'Step 5: Preview & Download',
+    description: 'Preview each card — it matches the PDF exactly. Every PDF includes a QR code so anyone can verify it is genuine. Use the Download button to save or share.',
     arrowDirection: 'down',
   },
 ];
