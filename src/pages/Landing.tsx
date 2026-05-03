@@ -22,8 +22,8 @@ const Landing = () => {
       <header className="sticky top-0 z-40 backdrop-blur bg-background/85 border-b border-border/40">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 hover-scale">
-            <img src={edubelLogo} alt="EduBel logo" className="h-8 w-8 object-contain rounded-md" width={32} height={32} />
-            <span className="font-display font-bold text-lg gradient-text">EDUBEL</span>
+            <img src={edubelLogo} alt="EduBel logo" className="h-14 w-14 object-contain rounded-md" width={56} height={56} />
+            <span className="font-display font-bold text-xl gradient-text">EDUBEL</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
             <Link to="/scan">
