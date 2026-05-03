@@ -1,4 +1,4 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home, LayoutTemplate, Check } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeMode } from '@/types/reportCard';
+import { ThemeMode, ReportCardTemplate } from '@/types/reportCard';
 import { Link } from 'react-router-dom';
 import { restartTutorial } from '@/components/TutorialGuide';
 import { usePWA } from '@/hooks/usePWA';
@@ -39,6 +39,8 @@ interface AppSidebarProps {
   currentStep: WizardStep;
   onStepChange: (s: WizardStep) => void;
   onCreateNew: () => void;
+  template: ReportCardTemplate;
+  onTemplateChange: (t: ReportCardTemplate) => void;
 }
 
 const STEPS: { id: WizardStep; title: string; icon: typeof BookOpen }[] = [
