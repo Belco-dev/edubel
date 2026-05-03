@@ -142,6 +142,15 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.dispatchEvent(new Event('edubel:open-spreadsheet'))}
+                  tooltip="Create Marks File"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  {!collapsed && <span>Create Marks File</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => restartTutorial()} tooltip="Tutorial">
                   <PlayCircle className="h-4 w-4" />
                   {!collapsed && <span>Tutorial</span>}
