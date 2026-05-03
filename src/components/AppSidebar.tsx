@@ -184,6 +184,36 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Report Card Template */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Report Card Template</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {TEMPLATES.map(({ id, label, desc }) => {
+                const active = template === id;
+                return (
+                  <SidebarMenuItem key={id}>
+                    <SidebarMenuButton
+                      onClick={() => onTemplateChange(id)}
+                      className={active ? 'bg-muted text-primary font-medium' : ''}
+                      tooltip={label}
+                    >
+                      <LayoutTemplate className="h-4 w-4" />
+                      {!collapsed && (
+                        <span className="flex-1 truncate">
+                          {label}
+                          <span className="block text-[10px] text-muted-foreground truncate">{desc}</span>
+                        </span>
+                      )}
+                      {!collapsed && active && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
         {/* Theme */}
         <SidebarGroup>
           <SidebarGroupLabel>Theme</SidebarGroupLabel>
