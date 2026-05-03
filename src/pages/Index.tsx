@@ -152,6 +152,7 @@ const Index = () => {
             reportCardStyle={reportCardStyle}
             onStyleChange={setReportCardStyle}
             gradingRules={gradingRules}
+            template={template}
           />
         );
     }
@@ -174,6 +175,8 @@ const Index = () => {
           currentStep={currentStep}
           onStepChange={setCurrentStep}
           onCreateNew={handleCreateNew}
+          template={template}
+          onTemplateChange={setTemplate}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
