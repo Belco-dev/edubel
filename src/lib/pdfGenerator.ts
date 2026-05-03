@@ -129,15 +129,17 @@ async function processLogo(dataUrl: string, blackAndWhite: boolean): Promise<str
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
   const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle, gradingRules } = options;
+  const template: ReportCardTemplate = options.template || 'classic';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const isBlackWhite = reportCardStyle === 'blackWhite';
   const margin = 10;
   const totalAvailWidth = pageWidth - margin * 2;
-  
-  const primaryColor: [number, number, number] = isBlackWhite ? [0, 0, 0] : [20, 184, 166];
-  const headerBg: [number, number, number] = isBlackWhite ? [245, 245, 245] : [240, 253, 250];
+
+  const theme = getTemplateTheme(template, isBlackWhite);
+  const primaryColor: [number, number, number] = theme.accent;
+  const headerBg: [number, number, number] = theme.headerFill;
   const textWhite: [number, number, number] = [255, 255, 255];
   const textBlack: [number, number, number] = [0, 0, 0];
   
