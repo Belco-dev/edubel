@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
 import {
@@ -34,13 +34,14 @@ interface ReportCardPreviewProps {
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
   gradingRules: GradingRule[];
+  template?: ReportCardTemplate;
 }
 
 
 
 
 export function ReportCardPreview({ 
-  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules 
+  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules, template = 'classic'
 }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
