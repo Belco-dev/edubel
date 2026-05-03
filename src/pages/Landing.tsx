@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import edubelLogo from '@/assets/edubel-logo.png';
 import heroImg from '@/assets/landing-hero.jpg';
+import { Footer } from '@/components/Footer';
 
 const features = [
   { icon: Zap, title: 'Lightning fast', text: 'Generate hundreds of report cards in seconds, fully offline.' },
@@ -177,9 +178,7 @@ const Landing = () => {
         </Link>
       </section>
 
-      <footer className="border-t border-border/40 py-6 text-center text-xs text-muted-foreground">
-        EDUBEL · A Division of Belcom · Built for Rwandan teachers
-      </footer>
+      <Footer />
     </div>
   );
 };
