@@ -459,7 +459,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       lineWidth: 0.2
     },
     headStyles: {
-      fillColor: isBlackWhite ? [220, 220, 220] : [240, 240, 240],
+      fillColor: theme.tableHeadFill,
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       halign: 'center',
