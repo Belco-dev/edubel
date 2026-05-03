@@ -57,7 +57,14 @@ const THEMES: { mode: ThemeMode; icon: typeof Sun; label: string }[] = [
   { mode: 'colorful', icon: Palette, label: 'Colorful' },
 ];
 
-export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew }: AppSidebarProps) {
+const TEMPLATES: { id: ReportCardTemplate; label: string; desc: string }[] = [
+  { id: 'classic', label: 'Classic Teal', desc: 'Original EduBel look' },
+  { id: 'modern', label: 'Modern Indigo', desc: 'Bold & contemporary' },
+  { id: 'elegant', label: 'Elegant Burgundy', desc: 'Formal & traditional' },
+  { id: 'minimal', label: 'Minimal Slate', desc: 'Clean & understated' },
+];
+
+export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { isOfflineReady, canInstall, install, clearStoredData } = usePWA();
@@ -65,16 +72,16 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
-        <div className="flex items-center gap-2 px-2 py-2">
+        <div className="flex items-center gap-3 px-2 py-3">
           <img
             src={edubelLogo}
             alt="EduBel logo"
-            className="h-9 w-9 shrink-0 object-contain rounded-md bg-white p-0.5"
+            className="h-16 w-16 shrink-0 object-contain rounded-lg bg-white p-1 shadow-sm"
           />
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-lg font-display font-bold gradient-text leading-none">EDUBEL</h1>
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">A Division of Belcom</p>
+              <h1 className="text-xl font-display font-bold gradient-text leading-none">EDUBEL</h1>
+              <p className="text-[10px] text-muted-foreground mt-1 truncate">A Division of Belcom</p>
             </div>
           )}
         </div>
