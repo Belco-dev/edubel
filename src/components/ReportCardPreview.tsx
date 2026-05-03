@@ -83,6 +83,7 @@ export function ReportCardPreview({
           terms: selectedTerms,
           reportCardStyle,
           gradingRules,
+          template,
         });
         if (cancelled) return;
         const blob = doc.output('blob');
@@ -112,7 +113,7 @@ export function ReportCardPreview({
     try {
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -127,7 +128,7 @@ export function ReportCardPreview({
       for (const student of students) {
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -154,7 +155,7 @@ export function ReportCardPreview({
       const student = students[i];
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
       });
       const pdfBlob = doc.output('blob');
       pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
@@ -259,7 +260,7 @@ export function ReportCardPreview({
         const student = students[i];
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
         });
         await writeFileToDirectory(
           targetFolder,
