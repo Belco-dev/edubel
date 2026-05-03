@@ -1,4 +1,4 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home, LayoutTemplate, Check } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeMode } from '@/types/reportCard';
+import { ThemeMode, ReportCardTemplate } from '@/types/reportCard';
 import { Link } from 'react-router-dom';
 import { restartTutorial } from '@/components/TutorialGuide';
 import { usePWA } from '@/hooks/usePWA';
@@ -39,6 +39,8 @@ interface AppSidebarProps {
   currentStep: WizardStep;
   onStepChange: (s: WizardStep) => void;
   onCreateNew: () => void;
+  template: ReportCardTemplate;
+  onTemplateChange: (t: ReportCardTemplate) => void;
 }
 
 const STEPS: { id: WizardStep; title: string; icon: typeof BookOpen }[] = [
@@ -55,7 +57,14 @@ const THEMES: { mode: ThemeMode; icon: typeof Sun; label: string }[] = [
   { mode: 'colorful', icon: Palette, label: 'Colorful' },
 ];
 
-export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew }: AppSidebarProps) {
+const TEMPLATES: { id: ReportCardTemplate; label: string; desc: string }[] = [
+  { id: 'classic', label: 'Classic Teal', desc: 'Original EduBel look' },
+  { id: 'modern', label: 'Modern Indigo', desc: 'Bold & contemporary' },
+  { id: 'elegant', label: 'Elegant Burgundy', desc: 'Formal & traditional' },
+  { id: 'minimal', label: 'Minimal Slate', desc: 'Clean & understated' },
+];
+
+export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { isOfflineReady, canInstall, install, clearStoredData } = usePWA();
@@ -63,16 +72,16 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
-        <div className="flex items-center gap-2 px-2 py-2">
+        <div className="flex items-center gap-3 px-2 py-3">
           <img
             src={edubelLogo}
             alt="EduBel logo"
-            className="h-9 w-9 shrink-0 object-contain rounded-md bg-white p-0.5"
+            className="h-16 w-16 shrink-0 object-contain rounded-lg bg-white p-1 shadow-sm"
           />
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-lg font-display font-bold gradient-text leading-none">EDUBEL</h1>
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">A Division of Belcom</p>
+              <h1 className="text-xl font-display font-bold gradient-text leading-none">EDUBEL</h1>
+              <p className="text-[10px] text-muted-foreground mt-1 truncate">A Division of Belcom</p>
             </div>
           )}
         </div>
@@ -133,6 +142,15 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => window.dispatchEvent(new Event('edubel:open-spreadsheet'))}
+                  tooltip="Create Marks File"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  {!collapsed && <span>Create Marks File</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => restartTutorial()} tooltip="Tutorial">
                   <PlayCircle className="h-4 w-4" />
                   {!collapsed && <span>Tutorial</span>}
@@ -162,6 +180,36 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Report Card Template */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Report Card Template</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {TEMPLATES.map(({ id, label, desc }) => {
+                const active = template === id;
+                return (
+                  <SidebarMenuItem key={id}>
+                    <SidebarMenuButton
+                      onClick={() => onTemplateChange(id)}
+                      className={active ? 'bg-muted text-primary font-medium' : ''}
+                      tooltip={label}
+                    >
+                      <LayoutTemplate className="h-4 w-4" />
+                      {!collapsed && (
+                        <span className="flex-1 truncate">
+                          {label}
+                          <span className="block text-[10px] text-muted-foreground truncate">{desc}</span>
+                        </span>
+                      )}
+                      {!collapsed && active && <Check className="h-3.5 w-3.5 text-primary" />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

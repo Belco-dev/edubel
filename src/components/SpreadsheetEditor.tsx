@@ -216,19 +216,15 @@ export function SpreadsheetEditor() {
 
   const visibleRows = useMemo(() => rows, [rows]);
 
+  // Open via global event dispatched from the sidebar menu.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener('edubel:open-spreadsheet', onOpen);
+    return () => window.removeEventListener('edubel:open-spreadsheet', onOpen);
+  }, []);
+
   return (
     <>
-      {/* Floating launcher button — sits ABOVE the Guide button (which is bottom-20). */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Open spreadsheet editor"
-        className="fixed bottom-36 right-4 z-50 bg-secondary text-secondary-foreground rounded-full px-4 py-2 text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 tutorial-bounce"
-        style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--secondary)))' }}
-      >
-        <FileSpreadsheet className="h-4 w-4" />
-        Create a File
-      </button>
-
       {!open ? null : (
         <div className="fixed inset-0 z-[9998] bg-background/95 backdrop-blur-sm flex flex-col animate-fade-in">
           {/* Toolbar */}

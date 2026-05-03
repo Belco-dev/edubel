@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import QRCode from 'qrcode';
-import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { getAutoComment } from '@/components/GradingSystem';
 import { buildVerifyUrl } from '@/lib/reportSignature';
 
@@ -13,6 +13,33 @@ interface GeneratePDFOptions {
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
   gradingRules: GradingRule[];
+  template?: ReportCardTemplate;
+}
+
+// Per-template visual palette. Only colors / accents differ — the rigorous
+// single-A4 layout, table structure and QR/signature blocks stay identical.
+interface TemplateTheme {
+  accent: [number, number, number];
+  headerFill: [number, number, number];
+  tableHeadFill: [number, number, number];
+  titleFont: 'times' | 'helvetica';
+}
+
+function getTemplateTheme(t: ReportCardTemplate, isBW: boolean): TemplateTheme {
+  if (isBW) {
+    return { accent: [0, 0, 0], headerFill: [245, 245, 245], tableHeadFill: [220, 220, 220], titleFont: 'times' };
+  }
+  switch (t) {
+    case 'modern':   // bold indigo / violet
+      return { accent: [99, 102, 241], headerFill: [238, 242, 255], tableHeadFill: [224, 231, 255], titleFont: 'helvetica' };
+    case 'elegant':  // burgundy / gold
+      return { accent: [136, 19, 55], headerFill: [253, 244, 236], tableHeadFill: [253, 230, 211], titleFont: 'times' };
+    case 'minimal':  // slate / soft
+      return { accent: [71, 85, 105], headerFill: [248, 250, 252], tableHeadFill: [241, 245, 249], titleFont: 'helvetica' };
+    case 'classic':
+    default:         // current EduBel teal
+      return { accent: [20, 184, 166], headerFill: [240, 253, 250], tableHeadFill: [240, 240, 240], titleFont: 'times' };
+  }
 }
 
 const DEFAULT_FIELD_ORDER = [
@@ -102,15 +129,17 @@ async function processLogo(dataUrl: string, blackAndWhite: boolean): Promise<str
 
 export async function generateStudentPDF(options: GeneratePDFOptions): Promise<jsPDF> {
   const { student, school, totalStudents, selectedSubjects, terms, reportCardStyle, gradingRules } = options;
+  const template: ReportCardTemplate = options.template || 'classic';
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const isBlackWhite = reportCardStyle === 'blackWhite';
   const margin = 10;
   const totalAvailWidth = pageWidth - margin * 2;
-  
-  const primaryColor: [number, number, number] = isBlackWhite ? [0, 0, 0] : [20, 184, 166];
-  const headerBg: [number, number, number] = isBlackWhite ? [245, 245, 245] : [240, 253, 250];
+
+  const theme = getTemplateTheme(template, isBlackWhite);
+  const primaryColor: [number, number, number] = theme.accent;
+  const headerBg: [number, number, number] = theme.headerFill;
   const textWhite: [number, number, number] = [255, 255, 255];
   const textBlack: [number, number, number] = [0, 0, 0];
   
@@ -162,8 +191,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const totalBoxHeight = schoolBlockHeight + titleBlockHeight + studentBlockHeight;
 
   // Draw the outer boundary box (rounded corners matching marks table style)
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.4);
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(0.5);
   doc.roundedRect(margin, boxStartY, totalAvailWidth, totalBoxHeight, 2, 2, 'S');
 
   // ----- School info block (top) -----
@@ -203,15 +232,17 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // ----- REPORT CARD title with two boundary lines -----
   const titleY = boxStartY + schoolBlockHeight;
   // Top boundary line (full width across the box)
+  doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.6);
   doc.line(margin, titleY, margin + totalAvailWidth, titleY);
   // Title text
-  doc.setFont('times', 'bold');
+  doc.setFont(theme.titleFont, 'bold');
   doc.setFontSize(16);
-  doc.setTextColor(...textBlack);
+  doc.setTextColor(...primaryColor);
   doc.text('REPORT CARD', pageWidth / 2, titleY + 9, { align: 'center' });
   // Bottom boundary line
   doc.line(margin, titleY + titleBlockHeight, margin + totalAvailWidth, titleY + titleBlockHeight);
+  doc.setTextColor(...textBlack);
 
   // ----- Student / class context block (below title) -----
   const ctxStartY = titleY + titleBlockHeight;
@@ -428,7 +459,7 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
       lineWidth: 0.2
     },
     headStyles: {
-      fillColor: isBlackWhite ? [220, 220, 220] : [240, 240, 240],
+      fillColor: theme.tableHeadFill,
       textColor: [0, 0, 0],
       fontStyle: 'bold',
       halign: 'center',

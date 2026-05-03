@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
 import {
@@ -34,13 +34,14 @@ interface ReportCardPreviewProps {
   reportCardStyle: ReportCardStyle;
   onStyleChange: (style: ReportCardStyle) => void;
   gradingRules: GradingRule[];
+  template?: ReportCardTemplate;
 }
 
 
 
 
 export function ReportCardPreview({ 
-  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules 
+  students, school, selectedSubjects, terms, reportCardStyle, onStyleChange, gradingRules, template = 'classic'
 }: ReportCardPreviewProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function ReportCardPreview({
           terms: selectedTerms,
           reportCardStyle,
           gradingRules,
+          template,
         });
         if (cancelled) return;
         const blob = doc.output('blob');
@@ -111,7 +113,7 @@ export function ReportCardPreview({
     try {
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
       });
       downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
     } catch (error) {
@@ -126,7 +128,7 @@ export function ReportCardPreview({
       for (const student of students) {
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
         });
         downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
         await new Promise(resolve => setTimeout(resolve, 300));
@@ -153,7 +155,7 @@ export function ReportCardPreview({
       const student = students[i];
       const doc = await generateStudentPDF({
         student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
       });
       const pdfBlob = doc.output('blob');
       pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
@@ -258,7 +260,7 @@ export function ReportCardPreview({
         const student = students[i];
         const doc = await generateStudentPDF({
           student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
         });
         await writeFileToDirectory(
           targetFolder,
