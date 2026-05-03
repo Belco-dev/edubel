@@ -232,15 +232,17 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   // ----- REPORT CARD title with two boundary lines -----
   const titleY = boxStartY + schoolBlockHeight;
   // Top boundary line (full width across the box)
+  doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.6);
   doc.line(margin, titleY, margin + totalAvailWidth, titleY);
   // Title text
-  doc.setFont('times', 'bold');
+  doc.setFont(theme.titleFont, 'bold');
   doc.setFontSize(16);
-  doc.setTextColor(...textBlack);
+  doc.setTextColor(...primaryColor);
   doc.text('REPORT CARD', pageWidth / 2, titleY + 9, { align: 'center' });
   // Bottom boundary line
   doc.line(margin, titleY + titleBlockHeight, margin + totalAvailWidth, titleY + titleBlockHeight);
+  doc.setTextColor(...textBlack);
 
   // ----- Student / class context block (below title) -----
   const ctxStartY = titleY + titleBlockHeight;
