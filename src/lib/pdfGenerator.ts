@@ -191,8 +191,8 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   const totalBoxHeight = schoolBlockHeight + titleBlockHeight + studentBlockHeight;
 
   // Draw the outer boundary box (rounded corners matching marks table style)
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.4);
+  doc.setDrawColor(...primaryColor);
+  doc.setLineWidth(0.5);
   doc.roundedRect(margin, boxStartY, totalAvailWidth, totalBoxHeight, 2, 2, 'S');
 
   // ----- School info block (top) -----
