@@ -35,17 +35,46 @@ const STEP_LABELS: Record<WizardStep, { title: string; subtitle: string }> = {
   preview: { title: 'Step 5 — Preview & Download', subtitle: 'Review report cards then download or share.' },
 };
 
+const SESSION_KEY = 'edubel_session_v1';
+
+interface PersistedSession {
+  theme: ThemeMode;
+  currentStep: WizardStep;
+  schoolData: SchoolData;
+  selectedSubjects: string[];
+  terms: TermUpload[];
+  reportCardStyle: ReportCardStyle;
+  gradingRules: GradingRule[];
+  template: ReportCardTemplate;
+}
+
 const Index = () => {
-  const [theme, setTheme] = useState<ThemeMode>('light');
-  const [currentStep, setCurrentStep] = useState<WizardStep>('school');
-  const [schoolData, setSchoolData] = useState<SchoolData>({
-    name: '', address: '', headTeacher: '', contact: '', className: '', termName: '', logo: null, classTeacher: '', ministryName: '',
-  });
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [terms, setTerms] = useState<TermUpload[]>(defaultTerms);
+  // Restore prior session (if any) on first mount.
+  const restored = typeof window !== 'undefined' ? loadSession<PersistedSession>(SESSION_KEY) : null;
+
+  const [theme, setTheme] = useState<ThemeMode>(restored?.theme ?? 'light');
+  const [currentStep, setCurrentStep] = useState<WizardStep>(restored?.currentStep ?? 'school');
+  const [schoolData, setSchoolData] = useState<SchoolData>(
+    restored?.schoolData ?? {
+      name: '', address: '', headTeacher: '', contact: '', className: '', termName: '', logo: null, classTeacher: '', ministryName: '',
+    }
+  );
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>(restored?.selectedSubjects ?? []);
+  // Files cannot be persisted but parsed term data can — strip File refs on restore.
+  const [terms, setTerms] = useState<TermUpload[]>(
+    restored?.terms
+      ? restored.terms.map(t => ({ ...t, testFile: null, examFile: null }))
+      : defaultTerms
+  );
   const [students, setStudents] = useState<Student[]>([]);
-  const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>('colorful');
-  const [gradingRules, setGradingRules] = useState<GradingRule[]>([...DEFAULT_GRADING_RULES]);
+  const [reportCardStyle, setReportCardStyle] = useState<ReportCardStyle>(restored?.reportCardStyle ?? 'colorful');
+  const [gradingRules, setGradingRules] = useState<GradingRule[]>(restored?.gradingRules ?? [...DEFAULT_GRADING_RULES]);
+  const [template, setTemplate] = useState<ReportCardTemplate>(restored?.template ?? 'classic');
+
+  // Auto-save full session on every change.
+  useSessionAutoSave<PersistedSession>(SESSION_KEY, {
+    theme, currentStep, schoolData, selectedSubjects, terms, reportCardStyle, gradingRules, template,
+  });
 
   useEffect(() => {
     const root = document.documentElement;
