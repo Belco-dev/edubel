@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import QRCode from 'qrcode';
-import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule } from '@/types/reportCard';
+import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { getAutoComment } from '@/components/GradingSystem';
 import { buildVerifyUrl } from '@/lib/reportSignature';
 
@@ -13,6 +13,33 @@ interface GeneratePDFOptions {
   terms: TermUpload[];
   reportCardStyle: ReportCardStyle;
   gradingRules: GradingRule[];
+  template?: ReportCardTemplate;
+}
+
+// Per-template visual palette. Only colors / accents differ — the rigorous
+// single-A4 layout, table structure and QR/signature blocks stay identical.
+interface TemplateTheme {
+  accent: [number, number, number];
+  headerFill: [number, number, number];
+  tableHeadFill: [number, number, number];
+  titleFont: 'times' | 'helvetica';
+}
+
+function getTemplateTheme(t: ReportCardTemplate, isBW: boolean): TemplateTheme {
+  if (isBW) {
+    return { accent: [0, 0, 0], headerFill: [245, 245, 245], tableHeadFill: [220, 220, 220], titleFont: 'times' };
+  }
+  switch (t) {
+    case 'modern':   // bold indigo / violet
+      return { accent: [99, 102, 241], headerFill: [238, 242, 255], tableHeadFill: [224, 231, 255], titleFont: 'helvetica' };
+    case 'elegant':  // burgundy / gold
+      return { accent: [136, 19, 55], headerFill: [253, 244, 236], tableHeadFill: [253, 230, 211], titleFont: 'times' };
+    case 'minimal':  // slate / soft
+      return { accent: [71, 85, 105], headerFill: [248, 250, 252], tableHeadFill: [241, 245, 249], titleFont: 'helvetica' };
+    case 'classic':
+    default:         // current EduBel teal
+      return { accent: [20, 184, 166], headerFill: [240, 253, 250], tableHeadFill: [240, 240, 240], titleFont: 'times' };
+  }
 }
 
 const DEFAULT_FIELD_ORDER = [
