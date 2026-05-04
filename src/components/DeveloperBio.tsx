@@ -21,7 +21,7 @@ export function DeveloperBio() {
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2">
               <Button asChild size="sm" className="bg-gradient-primary text-primary-foreground gap-1.5">
-                <a href="https://www.upwork.com/" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.upwork.com/freelancers/~017f07db2d489300c2?mp_source=share" target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-3.5 w-3.5" />
                   View Upwork Profile
                 </a>
