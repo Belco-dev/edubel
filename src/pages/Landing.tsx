@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, ShieldCheck, Zap, Download, Wifi, ScanLine, ArrowRight, BookOpen, Users, FileSpreadsheet, Lock } from 'lucide-react';
+import { Sparkles, ShieldCheck, Zap, Download, Wifi, ArrowRight, BookOpen, Users, FileSpreadsheet, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import edubelLogo from '@/assets/edubel-logo.png';
