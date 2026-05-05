@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, ShieldCheck, Zap, Download, Wifi, ScanLine, ArrowRight, BookOpen, Users, FileSpreadsheet, Lock } from 'lucide-react';
+import { Sparkles, ShieldCheck, Zap, Download, Wifi, ArrowRight, BookOpen, Users, FileSpreadsheet, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import edubelLogo from '@/assets/edubel-logo.png';
@@ -9,7 +9,7 @@ import { Footer } from '@/components/Footer';
 const features = [
   { icon: Zap, title: 'Lightning fast', text: 'Generate hundreds of report cards in seconds, fully offline.' },
   { icon: Lock, title: 'Privacy first', text: 'No accounts, no servers. Student data never leaves your browser.' },
-  { icon: ShieldCheck, title: 'QR authenticity', text: 'Every card carries a tamper-proof QR — scan to verify originals.' },
+  { icon: ShieldCheck, title: 'Privacy first', text: 'Your data never leaves your browser — fully offline-capable.' },
   { icon: Wifi, title: 'Works offline', text: 'Install once and keep generating cards even without internet.' },
   { icon: BookOpen, title: 'Rwandan curriculum', text: 'Pre-loaded subjects from Nursery 1 to Senior 6.' },
   { icon: Download, title: 'Batch download', text: 'Export every card and a class summary as one ZIP file.' },
@@ -26,11 +26,6 @@ const Landing = () => {
             <span className="font-display font-bold text-xl gradient-text">EDUBEL</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
-            <Link to="/scan">
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <ScanLine className="h-4 w-4" /> <span className="hidden sm:inline">Verify</span>
-              </Button>
-            </Link>
             <Link to="/about">
               <Button variant="ghost" size="sm" className="hidden sm:inline-flex">About</Button>
             </Link>
@@ -64,17 +59,12 @@ const Landing = () => {
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl">
                 EduBel turns your Excel marks into polished, single-page report cards with one click —
-                privately, offline, and with QR-verified authenticity.
+                privately and offline — your data never leaves your browser.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/app">
                   <Button size="lg" className="gap-2 bg-gradient-primary text-primary-foreground btn-bounce">
                     Create Report Cards <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link to="/scan">
-                  <Button size="lg" variant="outline" className="gap-2">
-                    <ScanLine className="h-5 w-5" /> Verify a Card
                   </Button>
                 </Link>
               </div>
@@ -142,26 +132,6 @@ const Landing = () => {
               <p className="pt-2 font-medium text-sm">{step}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* QR AUTHENTICITY HIGHLIGHT */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="rounded-3xl bg-gradient-primary text-primary-foreground p-8 sm:p-12 text-center shadow-xl relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute top-0 left-1/4 h-40 w-40 rounded-full bg-white blur-2xl animate-pulse" />
-            <div className="absolute bottom-0 right-1/4 h-40 w-40 rounded-full bg-white blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-          </div>
-          <ShieldCheck className="h-12 w-12 mx-auto mb-3 animate-bounce" />
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-3 relative">Stop fake report cards</h2>
-          <p className="max-w-xl mx-auto mb-6 opacity-95 relative">
-            Every PDF carries a cryptographically signed QR. Parents and schools can scan to instantly confirm the card is genuine — and tampered copies are exposed on sight.
-          </p>
-          <Link to="/scan" className="relative inline-block">
-            <Button size="lg" variant="secondary" className="gap-2 btn-bounce">
-              <ScanLine className="h-5 w-5" /> Try the Verifier
-            </Button>
-          </Link>
         </div>
       </section>
 

@@ -1,4 +1,4 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home, LayoutTemplate, Check } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, Home, LayoutTemplate, Check } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
@@ -131,14 +131,6 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 <SidebarMenuButton onClick={onCreateNew} tooltip="Create New">
                   <RotateCcw className="h-4 w-4" />
                   {!collapsed && <span>Create New</span>}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Scan Report Card">
-                  <Link to="/scan">
-                    <ScanLine className="h-4 w-4" />
-                    {!collapsed && <span>Scan Report Card</span>}
-                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

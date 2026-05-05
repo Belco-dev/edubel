@@ -1,9 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import QRCode from 'qrcode';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { getAutoComment } from '@/components/GradingSystem';
-import { buildVerifyUrl } from '@/lib/reportSignature';
 
 interface GeneratePDFOptions {
   student: Student;
@@ -533,37 +531,6 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
   doc.setFontSize(8);
   doc.text('Teacher Signature', dividerX + 3, boxY + 6);
   doc.text('Parent Signature', dividerX + 3, boxY + boxHeight / 2 + 6);
-
-  // ===== Authenticity QR Code (bottom-right corner) =====
-  try {
-    const lastTermPct = student.terms[student.terms.length - 1]?.percentage || 0;
-    const verifyUrl = await buildVerifyUrl({
-      s: student.fullName,
-      c: school.className || '',
-      y: school.academicYear || '',
-      t: school.termName || '',
-      p: Math.round(lastTermPct * 10) / 10,
-      r: student.annualRank || student.position || 0,
-      sc: school.name || '',
-      ts: Date.now(),
-    });
-    const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
-      errorCorrectionLevel: 'M',
-      margin: 1,
-      width: 256,
-      color: { dark: '#000000', light: '#ffffff' },
-    });
-    const qrSize = 18;
-    const qrX = pageWidth - margin - qrSize;
-    const qrY = boxY + boxHeight + 2;
-    doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.setTextColor(80, 80, 80);
-    doc.text('Scan to verify', qrX + qrSize / 2, qrY + qrSize + 2.5, { align: 'center' });
-  } catch {
-    // QR generation failure should not break the PDF
-  }
 
   // Bottom custom details
   let bottomY = boxY + boxHeight + 8;
