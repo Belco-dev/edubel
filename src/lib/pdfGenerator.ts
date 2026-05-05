@@ -542,7 +542,20 @@ export async function generateStudentPDF(options: GeneratePDFOptions): Promise<j
     doc.text(detail.text, xPos, bottomY, { align: align as 'left' | 'right' });
     bottomY += 5;
   });
-  
+
+  // Generation footer (single small line at bottom of A4)
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const now = new Date();
+  const stamp = now.toLocaleString('en-GB', {
+    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+  const footerText = `Report card generated on: ${stamp} (${tz}) by EduBel Report Card Generator`;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(6.5);
+  doc.setTextColor(120, 120, 120);
+  doc.text(footerText, pageWidth / 2, 290, { align: 'center' });
+
   return doc;
 }
 
