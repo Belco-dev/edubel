@@ -26,11 +26,6 @@ const Landing = () => {
             <span className="font-display font-bold text-xl gradient-text">EDUBEL</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
-            <Link to="/scan">
-              <Button variant="ghost" size="sm" className="gap-1.5">
-                <ScanLine className="h-4 w-4" /> <span className="hidden sm:inline">Verify</span>
-              </Button>
-            </Link>
             <Link to="/about">
               <Button variant="ghost" size="sm" className="hidden sm:inline-flex">About</Button>
             </Link>
