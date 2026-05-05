@@ -134,14 +134,6 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Scan Report Card">
-                  <Link to="/scan">
-                    <ScanLine className="h-4 w-4" />
-                    {!collapsed && <span>Scan Report Card</span>}
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => window.dispatchEvent(new Event('edubel:open-spreadsheet'))}
                   tooltip="Create Marks File"
