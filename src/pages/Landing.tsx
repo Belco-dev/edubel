@@ -59,7 +59,7 @@ const Landing = () => {
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground max-w-xl">
                 EduBel turns your Excel marks into polished, single-page report cards with one click —
-                privately, offline, and with QR-verified authenticity.
+                privately and offline — your data never leaves your browser.
               </p>
               <div className="flex flex-wrap gap-3 pt-2">
                 <Link to="/app">
