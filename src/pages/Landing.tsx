@@ -9,7 +9,7 @@ import { Footer } from '@/components/Footer';
 const features = [
   { icon: Zap, title: 'Lightning fast', text: 'Generate hundreds of report cards in seconds, fully offline.' },
   { icon: Lock, title: 'Privacy first', text: 'No accounts, no servers. Student data never leaves your browser.' },
-  { icon: ShieldCheck, title: 'QR authenticity', text: 'Every card carries a tamper-proof QR — scan to verify originals.' },
+  { icon: ShieldCheck, title: 'Privacy first', text: 'Your data never leaves your browser — fully offline-capable.' },
   { icon: Wifi, title: 'Works offline', text: 'Install once and keep generating cards even without internet.' },
   { icon: BookOpen, title: 'Rwandan curriculum', text: 'Pre-loaded subjects from Nursery 1 to Senior 6.' },
   { icon: Download, title: 'Batch download', text: 'Export every card and a class summary as one ZIP file.' },
