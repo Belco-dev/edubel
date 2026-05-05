@@ -105,12 +105,19 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
 
   useEffect(() => {
     if (!active) return;
+    const step = TUTORIAL_STEPS[currentStep];
     // Wait a bit for the wizard page to mount before measuring the target.
-    const timer = setTimeout(updatePosition, 450);
+    const timer = setTimeout(() => {
+      updatePosition();
+      const el = document.getElementById(step.targetId);
+      if (el) el.classList.add('tutorial-target-highlight');
+    }, 450);
     window.addEventListener('resize', updatePosition);
     return () => {
       clearTimeout(timer);
       window.removeEventListener('resize', updatePosition);
+      const el = document.getElementById(step.targetId);
+      if (el) el.classList.remove('tutorial-target-highlight');
     };
   }, [active, currentStep, updatePosition]);
 
