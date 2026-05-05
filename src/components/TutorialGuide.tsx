@@ -183,18 +183,19 @@ export function TutorialGuide({ onDownloadComplete }: TutorialGuideProps) {
   const step = TUTORIAL_STEPS[currentStep];
   const isLast = currentStep === TUTORIAL_STEPS.length - 1;
 
-  // Calculate dialog position
-  const dialogStyle: React.CSSProperties = position
-    ? {
-        position: 'absolute',
-        zIndex: 9999,
-        ...(step.arrowDirection === 'down'
-          ? { top: position.top - 12, left: Math.max(16, position.left), transform: 'translateY(-100%)' }
-          : step.arrowDirection === 'up'
-          ? { top: position.top + 60, left: Math.max(16, position.left) }
-          : { top: position.top, left: position.left + position.width + 16 }),
-      }
-    : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999 };
+  // Always show the tutorial dialog as a fixed-position panel anchored to the
+  // bottom of the viewport. This guarantees the entire box (including the
+  // Next/Finish buttons AND the description) stays on-screen no matter where
+  // the highlighted target sits on the page.
+  const dialogStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: 16,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 9999,
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
+  };
 
   return (
     <>
