@@ -1,9 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import QRCode from 'qrcode';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
 import { getAutoComment } from '@/components/GradingSystem';
-import { buildVerifyUrl } from '@/lib/reportSignature';
 
 interface GeneratePDFOptions {
   student: Student;
