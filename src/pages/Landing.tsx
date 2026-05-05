@@ -67,11 +67,6 @@ const Landing = () => {
                     Create Report Cards <ArrowRight className="h-5 w-5" />
                   </Button>
                 </Link>
-                <Link to="/scan">
-                  <Button size="lg" variant="outline" className="gap-2">
-                    <ScanLine className="h-5 w-5" /> Verify a Card
-                  </Button>
-                </Link>
               </div>
               <div className="flex items-center gap-4 pt-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Users className="h-4 w-4 text-primary" /> Schools across Rwanda</span>
