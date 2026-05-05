@@ -345,3 +345,10 @@
     page-break-inside: avoid;
   }
 }
+.tutorial-target-highlight {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 4px;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 0 6px hsl(var(--primary) / 0.2);
+  transition: outline-color 0.2s ease;
+}
