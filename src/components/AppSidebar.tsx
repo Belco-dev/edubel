@@ -1,4 +1,4 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, ScanLine, Home, LayoutTemplate, Check } from 'lucide-react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, Home, LayoutTemplate, Check } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
