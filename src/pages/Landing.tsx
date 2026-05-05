@@ -145,26 +145,6 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* QR AUTHENTICITY HIGHLIGHT */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="rounded-3xl bg-gradient-primary text-primary-foreground p-8 sm:p-12 text-center shadow-xl relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute top-0 left-1/4 h-40 w-40 rounded-full bg-white blur-2xl animate-pulse" />
-            <div className="absolute bottom-0 right-1/4 h-40 w-40 rounded-full bg-white blur-2xl animate-pulse" style={{ animationDelay: '1s' }} />
-          </div>
-          <ShieldCheck className="h-12 w-12 mx-auto mb-3 animate-bounce" />
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-3 relative">Stop fake report cards</h2>
-          <p className="max-w-xl mx-auto mb-6 opacity-95 relative">
-            Every PDF carries a cryptographically signed QR. Parents and schools can scan to instantly confirm the card is genuine — and tampered copies are exposed on sight.
-          </p>
-          <Link to="/scan" className="relative inline-block">
-            <Button size="lg" variant="secondary" className="gap-2 btn-bounce">
-              <ScanLine className="h-5 w-5" /> Try the Verifier
-            </Button>
-          </Link>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="container mx-auto px-4 py-16 text-center space-y-5">
         <h2 className="text-3xl sm:text-5xl font-display font-bold">
