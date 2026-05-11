@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
-import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { generateStudentPDF, generateDuoPDF, generateDuoPagePDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
 import {
   isLocalFolderSaveSupported,
@@ -66,25 +66,22 @@ export function ReportCardPreview({
   const isBlackWhite = reportCardStyle === 'blackWhite';
   
 
-  // Render the preview as the EXACT PDF that will be downloaded. Regenerate
-  // whenever the inputs that affect the PDF change so the user can trust that
-  // what they see is what they get.
+  const isDuo = template === 'duo';
+
+  // Render the preview as the EXACT PDF that will be downloaded.
   useEffect(() => {
     if (!currentStudent) return;
     let cancelled = false;
     setPreviewLoading(true);
     (async () => {
       try {
-        const doc = await generateStudentPDF({
-          student: currentStudent,
-          school,
-          totalStudents: students.length,
-          selectedSubjects,
-          terms: selectedTerms,
-          reportCardStyle,
-          gradingRules,
-          template,
-        });
+        const baseOpts = {
+          school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+        };
+        const doc = isDuo
+          ? await generateDuoPagePDF(currentStudent, students, baseOpts)
+          : await generateStudentPDF({ ...baseOpts, student: currentStudent });
         if (cancelled) return;
         const blob = doc.output('blob');
         const url = URL.createObjectURL(blob);
@@ -97,11 +94,9 @@ export function ReportCardPreview({
         if (!cancelled) setPreviewLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, students, school, selectedSubjects, terms, reportCardStyle, gradingRules]);
+  }, [currentIndex, students, school, selectedSubjects, terms, reportCardStyle, gradingRules, template]);
 
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -111,11 +106,15 @@ export function ReportCardPreview({
   const handleDownloadSingle = async (student: Student) => {
     setDownloading(student.id);
     try {
-      const doc = await generateStudentPDF({
-        student, school, totalStudents: students.length,
+      const baseOpts = {
+        school, totalStudents: students.length,
         selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
-      });
-      downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
+      };
+      const doc = isDuo
+        ? await generateDuoPagePDF(student, students, baseOpts)
+        : await generateStudentPDF({ ...baseOpts, student });
+      const suffix = isDuo ? '_Duo_Report_Card.pdf' : '_Report_Card.pdf';
+      downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}${suffix}`);
     } catch (error) {
       console.error('Failed to generate PDF:', error);
     }
@@ -125,13 +124,19 @@ export function ReportCardPreview({
   const handleDownloadAll = async () => {
     setDownloadingAll(true);
     try {
-      for (const student of students) {
-        const doc = await generateStudentPDF({
-          student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
-        });
-        downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
-        await new Promise(resolve => setTimeout(resolve, 300));
+      const baseOpts = {
+        school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+      };
+      if (isDuo) {
+        const doc = await generateDuoPDF(students, baseOpts);
+        downloadPDF(doc, `${(school.className || 'Report_Cards').replace(/\s+/g, '_')}_Duo_Report_Cards.pdf`);
+      } else {
+        for (const student of students) {
+          const doc = await generateStudentPDF({ ...baseOpts, student });
+          downloadPDF(doc, `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`);
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
       }
     } catch (error) {
       console.error('Failed to generate PDFs:', error);
@@ -142,24 +147,39 @@ export function ReportCardPreview({
 
   /**
    * Build the full report bundle as a single ZIP blob.
-   * Used by both "Save to Device" download and "Smart Share" via Web Share API.
-   * Reports progress via the supplied callback (0..100).
    */
   const buildReportZipBlob = async (
     onProgress: (pct: number) => void
   ): Promise<{ blob: Blob; filename: string }> => {
     const zip = new JSZip();
     const pdfsFolder = zip.folder('PDFs');
+    const baseOpts = {
+      school, totalStudents: students.length,
+      selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+    };
 
-    for (let i = 0; i < students.length; i++) {
-      const student = students[i];
-      const doc = await generateStudentPDF({
-        student, school, totalStudents: students.length,
-        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
-      });
-      const pdfBlob = doc.output('blob');
-      pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
-      onProgress(Math.round(((i + 1) / students.length) * 85));
+    if (isDuo) {
+      // One landscape PDF per pair (two adjacent ranked students).
+      const pairCount = Math.ceil(students.length / 2);
+      for (let p = 0; p < pairCount; p++) {
+        const a = students[p * 2];
+        const b = students[p * 2 + 1];
+        const pair = [a, b].filter(Boolean) as Student[];
+        const doc = await generateDuoPDF(pair, baseOpts);
+        const namePart = b
+          ? `${a.fullName.replace(/\s+/g, '_')}__and__${b.fullName.replace(/\s+/g, '_')}`
+          : `${a.fullName.replace(/\s+/g, '_')}_solo`;
+        pdfsFolder!.file(`Pair_${p + 1}_${namePart}.pdf`, doc.output('blob'));
+        onProgress(Math.round(((p + 1) / pairCount) * 85));
+      }
+    } else {
+      for (let i = 0; i < students.length; i++) {
+        const student = students[i];
+        const doc = await generateStudentPDF({ ...baseOpts, student });
+        const pdfBlob = doc.output('blob');
+        pdfsFolder!.file(`${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`, pdfBlob);
+        onProgress(Math.round(((i + 1) / students.length) * 85));
+      }
     }
 
     const rankingDoc = await generateClassRankingPDF({ students, school, terms: selectedTerms });
@@ -256,18 +276,34 @@ export function ReportCardPreview({
       const folderName = `${(school.className || 'Report_Cards').trim()} Report Cards`;
       const targetFolder = await getOrCreateSubfolder(parent, folderName);
 
-      for (let i = 0; i < students.length; i++) {
-        const student = students[i];
-        const doc = await generateStudentPDF({
-          student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
-        });
-        await writeFileToDirectory(
-          targetFolder,
-          `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
-          doc.output('blob')
-        );
-        setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+      const baseOpts = {
+        school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+      };
+      if (isDuo) {
+        const pairCount = Math.ceil(students.length / 2);
+        for (let p = 0; p < pairCount; p++) {
+          const a = students[p * 2];
+          const b = students[p * 2 + 1];
+          const pair = [a, b].filter(Boolean) as Student[];
+          const doc = await generateDuoPDF(pair, baseOpts);
+          const namePart = b
+            ? `${a.fullName.replace(/\s+/g, '_')}__and__${b.fullName.replace(/\s+/g, '_')}`
+            : `${a.fullName.replace(/\s+/g, '_')}_solo`;
+          await writeFileToDirectory(targetFolder, `Pair_${p + 1}_${namePart}.pdf`, doc.output('blob'));
+          setFolderProgress(Math.round(((p + 1) / pairCount) * 85));
+        }
+      } else {
+        for (let i = 0; i < students.length; i++) {
+          const student = students[i];
+          const doc = await generateStudentPDF({ ...baseOpts, student });
+          await writeFileToDirectory(
+            targetFolder,
+            `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
+            doc.output('blob')
+          );
+          setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+        }
       }
 
       // Ranking PDF
