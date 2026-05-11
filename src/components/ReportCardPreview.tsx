@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Student, SchoolData, TermUpload, ReportCardStyle, GradingRule, ReportCardTemplate } from '@/types/reportCard';
-import { generateStudentPDF, downloadPDF } from '@/lib/pdfGenerator';
+import { generateStudentPDF, generateDuoPDF, generateDuoPagePDF, downloadPDF } from '@/lib/pdfGenerator';
 import { generateClassRankingPDF, classRankingFilename } from '@/lib/classRankingPdf';
 import {
   isLocalFolderSaveSupported,
