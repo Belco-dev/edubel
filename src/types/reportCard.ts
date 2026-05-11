@@ -110,4 +110,4 @@ export interface MarkSettings {
 
 export type ThemeMode = 'light' | 'dark' | 'colorful';
 export type ReportCardStyle = 'colorful' | 'blackWhite';
-export type ReportCardTemplate = 'classic' | 'modern' | 'elegant' | 'minimal';
+export type ReportCardTemplate = 'classic' | 'modern' | 'elegant' | 'minimal' | 'duo';
