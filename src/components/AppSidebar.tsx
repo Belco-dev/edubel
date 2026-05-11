@@ -62,6 +62,7 @@ const TEMPLATES: { id: ReportCardTemplate; label: string; desc: string }[] = [
   { id: 'modern', label: 'Modern Indigo', desc: 'Bold & contemporary' },
   { id: 'elegant', label: 'Elegant Burgundy', desc: 'Formal & traditional' },
   { id: 'minimal', label: 'Minimal Slate', desc: 'Clean & understated' },
+  { id: 'duo', label: 'Duo (2 per page)', desc: 'Save paper — landscape, cut to split' },
 ];
 
 export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange }: AppSidebarProps) {
