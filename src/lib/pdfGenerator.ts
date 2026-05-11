@@ -534,10 +534,10 @@ export async function generateDuoPDF(
       doc.line(halfW, y, halfW, Math.min(y + dash, pageH - 4));
       y += dash + gap;
     }
-    // Tiny scissors hint label
+    // Tiny cut-here hint (small label near top-center of the divider)
     doc.setFontSize(6);
     doc.setTextColor(140, 140, 140);
-    doc.text('cut here ✂', halfW + 1, pageH / 2, { angle: 90, align: 'center' });
+    doc.text('-- cut here --', halfW, 3, { align: 'center' });
   };
 
   for (let i = 0; i < studentsInOrder.length; i += 2) {
