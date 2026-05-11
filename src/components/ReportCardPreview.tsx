@@ -276,18 +276,34 @@ export function ReportCardPreview({
       const folderName = `${(school.className || 'Report_Cards').trim()} Report Cards`;
       const targetFolder = await getOrCreateSubfolder(parent, folderName);
 
-      for (let i = 0; i < students.length; i++) {
-        const student = students[i];
-        const doc = await generateStudentPDF({
-          student, school, totalStudents: students.length,
-          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
-        });
-        await writeFileToDirectory(
-          targetFolder,
-          `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
-          doc.output('blob')
-        );
-        setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+      const baseOpts = {
+        school, totalStudents: students.length,
+        selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+      };
+      if (isDuo) {
+        const pairCount = Math.ceil(students.length / 2);
+        for (let p = 0; p < pairCount; p++) {
+          const a = students[p * 2];
+          const b = students[p * 2 + 1];
+          const pair = [a, b].filter(Boolean) as Student[];
+          const doc = await generateDuoPDF(pair, baseOpts);
+          const namePart = b
+            ? `${a.fullName.replace(/\s+/g, '_')}__and__${b.fullName.replace(/\s+/g, '_')}`
+            : `${a.fullName.replace(/\s+/g, '_')}_solo`;
+          await writeFileToDirectory(targetFolder, `Pair_${p + 1}_${namePart}.pdf`, doc.output('blob'));
+          setFolderProgress(Math.round(((p + 1) / pairCount) * 85));
+        }
+      } else {
+        for (let i = 0; i < students.length; i++) {
+          const student = students[i];
+          const doc = await generateStudentPDF({ ...baseOpts, student });
+          await writeFileToDirectory(
+            targetFolder,
+            `${student.fullName.replace(/\s+/g, '_')}_Report_Card.pdf`,
+            doc.output('blob')
+          );
+          setFolderProgress(Math.round(((i + 1) / students.length) * 85));
+        }
       }
 
       // Ranking PDF
