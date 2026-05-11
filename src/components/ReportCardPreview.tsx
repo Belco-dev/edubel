@@ -66,25 +66,22 @@ export function ReportCardPreview({
   const isBlackWhite = reportCardStyle === 'blackWhite';
   
 
-  // Render the preview as the EXACT PDF that will be downloaded. Regenerate
-  // whenever the inputs that affect the PDF change so the user can trust that
-  // what they see is what they get.
+  const isDuo = template === 'duo';
+
+  // Render the preview as the EXACT PDF that will be downloaded.
   useEffect(() => {
     if (!currentStudent) return;
     let cancelled = false;
     setPreviewLoading(true);
     (async () => {
       try {
-        const doc = await generateStudentPDF({
-          student: currentStudent,
-          school,
-          totalStudents: students.length,
-          selectedSubjects,
-          terms: selectedTerms,
-          reportCardStyle,
-          gradingRules,
-          template,
-        });
+        const baseOpts = {
+          school, totalStudents: students.length,
+          selectedSubjects, terms: selectedTerms, reportCardStyle, gradingRules, template,
+        };
+        const doc = isDuo
+          ? await generateDuoPagePDF(currentStudent, students, baseOpts)
+          : await generateStudentPDF({ ...baseOpts, student: currentStudent });
         if (cancelled) return;
         const blob = doc.output('blob');
         const url = URL.createObjectURL(blob);
@@ -97,11 +94,9 @@ export function ReportCardPreview({
         if (!cancelled) setPreviewLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, students, school, selectedSubjects, terms, reportCardStyle, gradingRules]);
+  }, [currentIndex, students, school, selectedSubjects, terms, reportCardStyle, gradingRules, template]);
 
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
