@@ -382,9 +382,11 @@ async function drawStudentReport(
   }
   columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
 
-  // Roughly doubled body font size for legibility (was 5–6).
-  const baseFontSize = hasThreeTerms ? 9 : (numTerms === 2 ? 10 : 11);
+  // Keep marks/headers font size constant across term counts; the table
+  // auto-adjusts column widths and padding instead of shrinking text.
+  const baseFontSize = 10;
   const fontSize = baseFontSize * s;
+  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s;
 
   autoTable(doc, {
     startY: currentY,
@@ -395,7 +397,7 @@ async function drawStudentReport(
     margin: { left: leftEdge, right: doc.internal.pageSize.getWidth() - (leftEdge + totalAvailWidth) },
     styles: {
       fontSize,
-      cellPadding: 1.6 * s,
+      cellPadding: cellPad,
       minCellHeight: 5.5 * s,
       valign: 'middle',
       lineColor: [0, 0, 0],
