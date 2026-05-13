@@ -218,7 +218,7 @@ async function drawStudentReport(
   doc.setLineWidth(0.6 * s);
   doc.line(leftEdge, titleY, leftEdge + totalAvailWidth, titleY);
   doc.setFont(theme.titleFont, 'bold');
-  doc.setFontSize(16 * s);
+  doc.setFontSize(20 * s);
   doc.setTextColor(...primaryColor);
   doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s, { align: 'center' });
   doc.line(leftEdge, titleY + titleBlockHeight, leftEdge + totalAvailWidth, titleY + titleBlockHeight);
