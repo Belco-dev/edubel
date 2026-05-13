@@ -159,7 +159,7 @@ async function drawStudentReport(
   let currentY = oy + 5 * s;
 
   topDetails.forEach(detail => {
-    doc.setFontSize(8 * s);
+    doc.setFontSize(9.5 * s);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'normal');
     const xPos = detail.position === 'topRight' ? rightEdge : leftEdge;
