@@ -202,14 +202,14 @@ async function drawStudentReport(
     const value = getFieldValue(school, id);
     const label = getFieldLabel(id);
     const displayText = label ? `${label} ${value}` : value;
-    let baseFontSize = 9 * s;
+    let baseFontSize = 11 * s;
     let fontStyle: 'bold' | 'normal' = 'normal';
-    if (id === 'name') { baseFontSize = 14 * s; fontStyle = 'bold'; }
-    else if (id === 'ministryName') { baseFontSize = 9 * s; fontStyle = 'bold'; }
+    if (id === 'name') { baseFontSize = 17 * s; fontStyle = 'bold'; }
+    else if (id === 'ministryName') { baseFontSize = 12 * s; fontStyle = 'bold'; }
     doc.setFont('helvetica', fontStyle);
     autoFitText(doc, displayText, schoolTextMaxWidth, baseFontSize);
     doc.text(displayText, leftEdge + 3 * s, schoolY);
-    schoolY += id === 'name' ? 6.5 * s : schoolLineHeight;
+    schoolY += id === 'name' ? 7.5 * s : schoolLineHeight;
   });
 
   // REPORT CARD title with two boundary lines
