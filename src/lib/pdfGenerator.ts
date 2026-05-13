@@ -231,17 +231,17 @@ async function drawStudentReport(
   const rightX = leftEdge + totalAvailWidth / 2 + 2 * s;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10 * s);
+  doc.setFontSize(13 * s);
   const sLabel = 'Student Name: ';
   doc.text('Student Name:', leftEdge + 3 * s, ctxY);
   const sLabelW = doc.getTextWidth(sLabel);
   doc.setFont('helvetica', 'normal');
-  autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 10 * s);
+  autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 13 * s);
   doc.text(student.fullName, leftEdge + 3 * s + sLabelW, ctxY);
   ctxY += 6 * s;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9 * s);
+  doc.setFontSize(11 * s);
   doc.text('Conduct:', leftEdge + 3 * s, ctxY);
   doc.setFont('helvetica', 'normal');
   doc.text(`${student.conductMarks} / ${student.conductMax}`, leftEdge + 3 * s + doc.getTextWidth('Conduct: '), ctxY);
@@ -260,11 +260,11 @@ async function drawStudentReport(
       const label = getFieldLabel(id);
       const val = getFieldValue(school, id);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9 * s);
+      doc.setFontSize(11 * s);
       doc.text(label, x, ctxY);
       const lw = doc.getTextWidth(label + ' ');
       doc.setFont('helvetica', 'normal');
-      autoFitText(doc, val, halfBoxWidth - lw, 9 * s);
+      autoFitText(doc, val, halfBoxWidth - lw, 11 * s);
       doc.text(val, x + lw, ctxY);
     };
     if (leftId) drawField(leftId, leftEdge + 3 * s);
