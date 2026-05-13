@@ -433,7 +433,7 @@ async function drawStudentReport(
   // Observations + Signatures box
   const boxY = finalY + 5 * s;
   const isAnnual = hasThreeTerms;
-  const boxHeight = (isAnnual ? 40 : 35) * s;
+  const boxHeight = (isAnnual ? 46 : 40) * s;
 
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3 * s);
@@ -442,39 +442,39 @@ async function drawStudentReport(
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
   doc.line(dividerX, boxY + boxHeight / 2, leftEdge + totalAvailWidth, boxY + boxHeight / 2);
 
-  doc.setFontSize(8 * s);
+  doc.setFontSize(11 * s);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text('Observations', leftEdge + 2 * s, boxY + 6 * s);
+  doc.text('Observations', leftEdge + 2 * s, boxY + 7 * s);
 
   const lastTerm = student.terms[student.terms.length - 1];
   const commentPercentage = lastTerm?.percentage || 0;
   const autoComment = getAutoComment(commentPercentage, gradingRules);
   if (autoComment) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7 * s);
-    doc.text(autoComment, leftEdge + 2 * s, boxY + 12 * s);
+    doc.setFontSize(9.5 * s);
+    doc.text(autoComment, leftEdge + 2 * s, boxY + 14 * s);
   }
 
   if (isAnnual) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7 * s);
-    const checkY = boxY + 18 * s;
-    doc.rect(leftEdge + 2 * s, checkY - 2.5 * s, 3 * s, 3 * s);
-    doc.text('Promoted', leftEdge + 6 * s, checkY);
-    doc.rect(leftEdge + 30 * s, checkY - 2.5 * s, 3 * s, 3 * s);
-    doc.text('Repeated', leftEdge + 34 * s, checkY);
+    doc.setFontSize(9.5 * s);
+    const checkY = boxY + 22 * s;
+    doc.rect(leftEdge + 2 * s, checkY - 3 * s, 3.5 * s, 3.5 * s);
+    doc.text('Promoted', leftEdge + 7 * s, checkY);
+    doc.rect(leftEdge + 34 * s, checkY - 3 * s, 3.5 * s, 3.5 * s);
+    doc.text('Repeated', leftEdge + 39 * s, checkY);
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8 * s);
-  doc.text('Teacher Signature', dividerX + 3 * s, boxY + 6 * s);
-  doc.text('Parent Signature', dividerX + 3 * s, boxY + boxHeight / 2 + 6 * s);
+  doc.setFontSize(11 * s);
+  doc.text('Teacher Signature', dividerX + 3 * s, boxY + 7 * s);
+  doc.text('Parent Signature', dividerX + 3 * s, boxY + boxHeight / 2 + 7 * s);
 
   // Bottom custom details
   let bottomY = boxY + boxHeight + 8 * s;
   bottomDetails.forEach(detail => {
-    doc.setFontSize(8 * s);
+    doc.setFontSize(9.5 * s);
     doc.setTextColor(...textBlack);
     const xPos = detail.position === 'bottomRight' ? rightEdge : leftEdge;
     const align = detail.position === 'bottomRight' ? 'right' : 'left';
