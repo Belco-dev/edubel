@@ -364,8 +364,10 @@ async function drawStudentReport(
   tableData.push(rankRow);
 
   const numCols = 4 + numTerms * 4 + (hasThreeTerms ? 3 : 0) + 1;
-  const subjectPct = 0.14;
-  const commentsPct = 0.07;
+  // Wider subject column to accommodate long subject names; narrower data
+  // columns so we can grow the font size without overflowing the table.
+  const subjectPct = hasThreeTerms ? 0.22 : (numTerms === 2 ? 0.26 : 0.3);
+  const commentsPct = 0.08;
   const subjectColWidth = totalAvailWidth * subjectPct;
   const commentsColWidth = totalAvailWidth * commentsPct;
   const remainingWidth = totalAvailWidth - subjectColWidth - commentsColWidth;
@@ -380,7 +382,8 @@ async function drawStudentReport(
   }
   columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
 
-  const baseFontSize = hasThreeTerms ? 5 : (numTerms === 2 ? 5.5 : 6);
+  // Roughly doubled body font size for legibility (was 5–6).
+  const baseFontSize = hasThreeTerms ? 9 : (numTerms === 2 ? 10 : 11);
   const fontSize = baseFontSize * s;
 
   autoTable(doc, {
