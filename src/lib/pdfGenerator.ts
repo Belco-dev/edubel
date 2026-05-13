@@ -159,7 +159,7 @@ async function drawStudentReport(
   let currentY = oy + 5 * s;
 
   topDetails.forEach(detail => {
-    doc.setFontSize(8 * s);
+    doc.setFontSize(9.5 * s);
     doc.setTextColor(...textBlack);
     doc.setFont('helvetica', 'normal');
     const xPos = detail.position === 'topRight' ? rightEdge : leftEdge;
@@ -202,14 +202,14 @@ async function drawStudentReport(
     const value = getFieldValue(school, id);
     const label = getFieldLabel(id);
     const displayText = label ? `${label} ${value}` : value;
-    let baseFontSize = 9 * s;
+    let baseFontSize = 11 * s;
     let fontStyle: 'bold' | 'normal' = 'normal';
-    if (id === 'name') { baseFontSize = 14 * s; fontStyle = 'bold'; }
-    else if (id === 'ministryName') { baseFontSize = 9 * s; fontStyle = 'bold'; }
+    if (id === 'name') { baseFontSize = 17 * s; fontStyle = 'bold'; }
+    else if (id === 'ministryName') { baseFontSize = 12 * s; fontStyle = 'bold'; }
     doc.setFont('helvetica', fontStyle);
     autoFitText(doc, displayText, schoolTextMaxWidth, baseFontSize);
     doc.text(displayText, leftEdge + 3 * s, schoolY);
-    schoolY += id === 'name' ? 6.5 * s : schoolLineHeight;
+    schoolY += id === 'name' ? 7.5 * s : schoolLineHeight;
   });
 
   // REPORT CARD title with two boundary lines
@@ -218,7 +218,7 @@ async function drawStudentReport(
   doc.setLineWidth(0.6 * s);
   doc.line(leftEdge, titleY, leftEdge + totalAvailWidth, titleY);
   doc.setFont(theme.titleFont, 'bold');
-  doc.setFontSize(16 * s);
+  doc.setFontSize(20 * s);
   doc.setTextColor(...primaryColor);
   doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s, { align: 'center' });
   doc.line(leftEdge, titleY + titleBlockHeight, leftEdge + totalAvailWidth, titleY + titleBlockHeight);
@@ -231,17 +231,17 @@ async function drawStudentReport(
   const rightX = leftEdge + totalAvailWidth / 2 + 2 * s;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10 * s);
+  doc.setFontSize(13 * s);
   const sLabel = 'Student Name: ';
   doc.text('Student Name:', leftEdge + 3 * s, ctxY);
   const sLabelW = doc.getTextWidth(sLabel);
   doc.setFont('helvetica', 'normal');
-  autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 10 * s);
+  autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 13 * s);
   doc.text(student.fullName, leftEdge + 3 * s + sLabelW, ctxY);
   ctxY += 6 * s;
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9 * s);
+  doc.setFontSize(11 * s);
   doc.text('Conduct:', leftEdge + 3 * s, ctxY);
   doc.setFont('helvetica', 'normal');
   doc.text(`${student.conductMarks} / ${student.conductMax}`, leftEdge + 3 * s + doc.getTextWidth('Conduct: '), ctxY);
@@ -260,11 +260,11 @@ async function drawStudentReport(
       const label = getFieldLabel(id);
       const val = getFieldValue(school, id);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9 * s);
+      doc.setFontSize(11 * s);
       doc.text(label, x, ctxY);
       const lw = doc.getTextWidth(label + ' ');
       doc.setFont('helvetica', 'normal');
-      autoFitText(doc, val, halfBoxWidth - lw, 9 * s);
+      autoFitText(doc, val, halfBoxWidth - lw, 11 * s);
       doc.text(val, x + lw, ctxY);
     };
     if (leftId) drawField(leftId, leftEdge + 3 * s);
@@ -382,9 +382,11 @@ async function drawStudentReport(
   }
   columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
 
-  // Roughly doubled body font size for legibility (was 5–6).
-  const baseFontSize = hasThreeTerms ? 9 : (numTerms === 2 ? 10 : 11);
+  // Keep marks/headers font size constant across term counts; the table
+  // auto-adjusts column widths and padding instead of shrinking text.
+  const baseFontSize = 10;
   const fontSize = baseFontSize * s;
+  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s;
 
   autoTable(doc, {
     startY: currentY,
@@ -395,7 +397,7 @@ async function drawStudentReport(
     margin: { left: leftEdge, right: doc.internal.pageSize.getWidth() - (leftEdge + totalAvailWidth) },
     styles: {
       fontSize,
-      cellPadding: 1.6 * s,
+      cellPadding: cellPad,
       minCellHeight: 5.5 * s,
       valign: 'middle',
       lineColor: [0, 0, 0],
@@ -431,7 +433,7 @@ async function drawStudentReport(
   // Observations + Signatures box
   const boxY = finalY + 5 * s;
   const isAnnual = hasThreeTerms;
-  const boxHeight = (isAnnual ? 40 : 35) * s;
+  const boxHeight = (isAnnual ? 46 : 40) * s;
 
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3 * s);
@@ -440,39 +442,39 @@ async function drawStudentReport(
   doc.line(dividerX, boxY, dividerX, boxY + boxHeight);
   doc.line(dividerX, boxY + boxHeight / 2, leftEdge + totalAvailWidth, boxY + boxHeight / 2);
 
-  doc.setFontSize(8 * s);
+  doc.setFontSize(11 * s);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 0, 0);
-  doc.text('Observations', leftEdge + 2 * s, boxY + 6 * s);
+  doc.text('Observations', leftEdge + 2 * s, boxY + 7 * s);
 
   const lastTerm = student.terms[student.terms.length - 1];
   const commentPercentage = lastTerm?.percentage || 0;
   const autoComment = getAutoComment(commentPercentage, gradingRules);
   if (autoComment) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7 * s);
-    doc.text(autoComment, leftEdge + 2 * s, boxY + 12 * s);
+    doc.setFontSize(9.5 * s);
+    doc.text(autoComment, leftEdge + 2 * s, boxY + 14 * s);
   }
 
   if (isAnnual) {
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7 * s);
-    const checkY = boxY + 18 * s;
-    doc.rect(leftEdge + 2 * s, checkY - 2.5 * s, 3 * s, 3 * s);
-    doc.text('Promoted', leftEdge + 6 * s, checkY);
-    doc.rect(leftEdge + 30 * s, checkY - 2.5 * s, 3 * s, 3 * s);
-    doc.text('Repeated', leftEdge + 34 * s, checkY);
+    doc.setFontSize(9.5 * s);
+    const checkY = boxY + 22 * s;
+    doc.rect(leftEdge + 2 * s, checkY - 3 * s, 3.5 * s, 3.5 * s);
+    doc.text('Promoted', leftEdge + 7 * s, checkY);
+    doc.rect(leftEdge + 34 * s, checkY - 3 * s, 3.5 * s, 3.5 * s);
+    doc.text('Repeated', leftEdge + 39 * s, checkY);
   }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8 * s);
-  doc.text('Teacher Signature', dividerX + 3 * s, boxY + 6 * s);
-  doc.text('Parent Signature', dividerX + 3 * s, boxY + boxHeight / 2 + 6 * s);
+  doc.setFontSize(11 * s);
+  doc.text('Teacher Signature', dividerX + 3 * s, boxY + 7 * s);
+  doc.text('Parent Signature', dividerX + 3 * s, boxY + boxHeight / 2 + 7 * s);
 
   // Bottom custom details
   let bottomY = boxY + boxHeight + 8 * s;
   bottomDetails.forEach(detail => {
-    doc.setFontSize(8 * s);
+    doc.setFontSize(9.5 * s);
     doc.setTextColor(...textBlack);
     const xPos = detail.position === 'bottomRight' ? rightEdge : leftEdge;
     const align = detail.position === 'bottomRight' ? 'right' : 'left';
