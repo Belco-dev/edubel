@@ -32,21 +32,25 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
   const studentCount = firstData.students.length;
   const students: Student[] = [];
   
-  const allSubjectsMap = new Map<string, { maxMtt: number; maxExam: number }>();
+  // Key subjects case-insensitively so "Maths"/"MATHS"/"maths" merge into one.
+  const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ');
+  const allSubjectsMap = new Map<string, { display: string; maxMtt: number; maxExam: number }>();
   
   uploadedTerms.forEach(term => {
     if (term.testParsedData) {
       term.testParsedData.students[0]?.marks.forEach(m => {
-        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        const key = norm(m.subject);
+        const existing = allSubjectsMap.get(key) || { display: m.subject, maxMtt: 0, maxExam: 0 };
         existing.maxMtt = Math.max(existing.maxMtt, m.maxMarks);
-        allSubjectsMap.set(m.subject, existing);
+        allSubjectsMap.set(key, existing);
       });
     }
     if (term.examParsedData) {
       term.examParsedData.students[0]?.marks.forEach(m => {
-        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        const key = norm(m.subject);
+        const existing = allSubjectsMap.get(key) || { display: m.subject, maxMtt: 0, maxExam: 0 };
         existing.maxExam = Math.max(existing.maxExam, m.maxMarks);
-        allSubjectsMap.set(m.subject, existing);
+        allSubjectsMap.set(key, existing);
       });
     }
   });
