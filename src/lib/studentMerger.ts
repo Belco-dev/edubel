@@ -81,9 +81,10 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       let termTotal = 0;
       let termMax = 0;
       
-      allSubjectsMap.forEach((maxValues, subjectName) => {
-        const testMark = testStudent?.marks.find(m => m.subject === subjectName);
-        const examMark = examStudent?.marks.find(m => m.subject === subjectName);
+      allSubjectsMap.forEach((maxValues, subjectKey) => {
+        const subjectName = maxValues.display;
+        const testMark = testStudent?.marks.find(m => norm(m.subject) === subjectKey);
+        const examMark = examStudent?.marks.find(m => norm(m.subject) === subjectKey);
         
         const mtt = testMark?.marks || 0;
         const exam = examMark?.marks || 0;
@@ -101,6 +102,7 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
           maxExam,
           maxTotal,
         });
+        
         
         termTotal += total;
         termMax += maxTotal;
