@@ -156,6 +156,26 @@ async function drawStudentReport(
   const topDetails = allDetails.filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight'));
   const bottomDetails = allDetails.filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight'));
 
+  // User-defined report-card headers pulled from Excel columns.
+  const customHeaders = school.customHeaders || [];
+  const getExtra = (title: string) => (student.extraFields?.[title] || '').trim();
+  const upperHeaders = customHeaders
+    .filter(h => h.position === 'upper' && getExtra(h.columnTitle) !== '')
+    .map(h => ({ label: h.columnTitle, value: getExtra(h.columnTitle) }));
+  const lowerHeaders: { label: string; value: string }[] = [];
+  if (student.indexNumber) lowerHeaders.push({ label: 'Index No', value: student.indexNumber });
+  customHeaders
+    .filter(h => h.position === 'lower' && getExtra(h.columnTitle) !== '')
+    .forEach(h => lowerHeaders.push({ label: h.columnTitle, value: getExtra(h.columnTitle) }));
+
+  // Density-aware compression so many subjects still fit on one page.
+  const subjCountForDensity = (student.terms[0]?.subjects || []).filter(s2 =>
+    selectedSubjects.length === 0 || selectedSubjects.includes(s2.subject)
+  ).length;
+  const dense = subjCountForDensity > 12;
+  const veryDense = subjCountForDensity > 16;
+  const denseF = veryDense ? 0.72 : dense ? 0.85 : 1;
+
   let currentY = oy + 5 * s;
 
   topDetails.forEach(detail => {
@@ -171,14 +191,14 @@ async function drawStudentReport(
   // ===== Boundary box header =====
   const boxStartY = currentY;
   const boxPadding = 5 * s;
-  const schoolLineHeight = 5.5 * s;
+  const schoolLineHeight = 5.5 * s * denseF;
   const minLogoSlot = school.logo ? 36 * s : 0;
-  const schoolTextHeight = boxPadding + schoolFields.length * schoolLineHeight + 3 * s;
+  const schoolTextHeight = boxPadding + schoolFields.length * schoolLineHeight + upperHeaders.length * schoolLineHeight + 3 * s;
   const schoolBlockHeight = Math.max(schoolTextHeight, minLogoSlot);
-  const titleBlockHeight = 14 * s;
+  const titleBlockHeight = 14 * s * denseF;
   const hasDateOfBirth = !!student.dateOfBirth;
-  const studentLines = 1 + 1 + Math.max(1, Math.ceil(contextFields.length / 2));
-  const studentBlockHeight = studentLines * 6 * s + boxPadding + 2 * s;
+  const studentLines = 1 + 1 + Math.max(1, Math.ceil(contextFields.length / 2)) + Math.ceil(lowerHeaders.length / 2);
+  const studentBlockHeight = studentLines * 6 * s * denseF + boxPadding + 2 * s;
   const totalBoxHeight = schoolBlockHeight + titleBlockHeight + studentBlockHeight;
 
   doc.setDrawColor(...primaryColor);
@@ -212,21 +232,31 @@ async function drawStudentReport(
     schoolY += id === 'name' ? 7.5 * s : schoolLineHeight;
   });
 
+  // Upper custom headers (above REPORT CARD title)
+  upperHeaders.forEach(h => {
+    const txt = `${h.label}: ${h.value}`;
+    doc.setFont('helvetica', 'bold');
+    autoFitText(doc, txt, schoolTextMaxWidth, 10 * s * denseF);
+    doc.text(txt, leftEdge + 3 * s, schoolY);
+    schoolY += schoolLineHeight;
+  });
+
   // REPORT CARD title with two boundary lines
   const titleY = boxStartY + schoolBlockHeight;
   doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.6 * s);
   doc.line(leftEdge, titleY, leftEdge + totalAvailWidth, titleY);
   doc.setFont(theme.titleFont, 'bold');
-  doc.setFontSize(20 * s);
+  doc.setFontSize(20 * s * denseF);
   doc.setTextColor(...primaryColor);
-  doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s, { align: 'center' });
+  doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s * denseF, { align: 'center' });
   doc.line(leftEdge, titleY + titleBlockHeight, leftEdge + totalAvailWidth, titleY + titleBlockHeight);
   doc.setTextColor(...textBlack);
 
   // Student/class context
+  const ctxLine = 6 * s * denseF;
   const ctxStartY = titleY + titleBlockHeight;
-  let ctxY = ctxStartY + 6 * s;
+  let ctxY = ctxStartY + ctxLine;
   const halfBoxWidth = totalAvailWidth / 2 - 6 * s;
   const rightX = leftEdge + totalAvailWidth / 2 + 2 * s;
 
@@ -238,7 +268,7 @@ async function drawStudentReport(
   doc.setFont('helvetica', 'normal');
   autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 13 * s);
   doc.text(student.fullName, leftEdge + 3 * s + sLabelW, ctxY);
-  ctxY += 6 * s;
+  ctxY += ctxLine;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11 * s);
@@ -251,7 +281,7 @@ async function drawStudentReport(
     doc.setFont('helvetica', 'normal');
     doc.text(student.dateOfBirth || '', rightX + doc.getTextWidth('Born at: '), ctxY);
   }
-  ctxY += 6 * s;
+  ctxY += ctxLine;
 
   for (let i = 0; i < contextFields.length; i += 2) {
     const leftId = contextFields[i];
@@ -269,7 +299,23 @@ async function drawStudentReport(
     };
     if (leftId) drawField(leftId, leftEdge + 3 * s);
     if (rightId) drawField(rightId, rightX);
-    ctxY += 6 * s;
+    ctxY += ctxLine;
+  }
+
+  // Lower custom headers + index number (two-section left/right)
+  for (let i = 0; i < lowerHeaders.length; i += 2) {
+    const drawExtra = (item: { label: string; value: string }, x: number) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11 * s);
+      doc.text(`${item.label}:`, x, ctxY);
+      const lw = doc.getTextWidth(`${item.label}: `);
+      doc.setFont('helvetica', 'normal');
+      autoFitText(doc, item.value, halfBoxWidth - lw, 11 * s);
+      doc.text(item.value, x + lw, ctxY);
+    };
+    if (lowerHeaders[i]) drawExtra(lowerHeaders[i], leftEdge + 3 * s);
+    if (lowerHeaders[i + 1]) drawExtra(lowerHeaders[i + 1], rightX);
+    ctxY += ctxLine;
   }
 
   currentY = boxStartY + totalBoxHeight + 4 * s;
@@ -382,11 +428,13 @@ async function drawStudentReport(
   }
   columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
 
-  // Keep marks/headers font size constant across term counts; the table
-  // auto-adjusts column widths and padding instead of shrinking text.
-  const baseFontSize = 10;
+  // Marks/headers font shrinks a little when there are many subjects so the
+  // whole table still fits on one page; column widths/padding also tighten.
+  const baseFontSize = veryDense ? 8 : dense ? 9 : 10;
   const fontSize = baseFontSize * s;
-  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s;
+  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s * denseF;
+  // Final position & percentage rows use a bigger font for quick reading.
+  const emphasisFont = (veryDense ? 11 : 13) * s;
 
   autoTable(doc, {
     startY: currentY,
@@ -398,7 +446,7 @@ async function drawStudentReport(
     styles: {
       fontSize,
       cellPadding: cellPad,
-      minCellHeight: 5.5 * s,
+      minCellHeight: 5.5 * s * denseF,
       valign: 'middle',
       lineColor: [0, 0, 0],
       lineWidth: 0.2 * s,
@@ -410,20 +458,25 @@ async function drawStudentReport(
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      minCellHeight: 5 * s,
+      minCellHeight: 5 * s * denseF,
       fontSize
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0], fontStyle: boldBody ? 'bold' : 'normal' },
     columnStyles,
     didParseCell: (data) => {
       if (data.row.index === tableData.length - 3) data.cell.styles.fontStyle = 'bold';
+      // Percentage row — emphasise the percentage values.
       if (data.row.index === tableData.length - 2) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];
+        if (String(data.cell.raw).includes('%')) data.cell.styles.fontSize = emphasisFont;
       }
+      // Rank row — emphasise the final positions.
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [230, 230, 230] : [245, 245, 245];
+        const raw = String(data.cell.raw).trim();
+        if (raw && raw !== '-' && data.column.index > 0) data.cell.styles.fontSize = emphasisFont;
       }
     },
   });
@@ -433,7 +486,7 @@ async function drawStudentReport(
   // Observations + Signatures box
   const boxY = finalY + 5 * s;
   const isAnnual = hasThreeTerms;
-  const boxHeight = (isAnnual ? 46 : 40) * s;
+  const boxHeight = (isAnnual ? 46 : 40) * s * denseF;
 
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3 * s);

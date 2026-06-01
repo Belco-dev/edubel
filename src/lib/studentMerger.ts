@@ -32,21 +32,25 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
   const studentCount = firstData.students.length;
   const students: Student[] = [];
   
-  const allSubjectsMap = new Map<string, { maxMtt: number; maxExam: number }>();
+  // Key subjects case-insensitively so "Maths"/"MATHS"/"maths" merge into one.
+  const norm = (s: string) => s.toLowerCase().trim().replace(/\s+/g, ' ');
+  const allSubjectsMap = new Map<string, { display: string; maxMtt: number; maxExam: number }>();
   
   uploadedTerms.forEach(term => {
     if (term.testParsedData) {
       term.testParsedData.students[0]?.marks.forEach(m => {
-        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        const key = norm(m.subject);
+        const existing = allSubjectsMap.get(key) || { display: m.subject, maxMtt: 0, maxExam: 0 };
         existing.maxMtt = Math.max(existing.maxMtt, m.maxMarks);
-        allSubjectsMap.set(m.subject, existing);
+        allSubjectsMap.set(key, existing);
       });
     }
     if (term.examParsedData) {
       term.examParsedData.students[0]?.marks.forEach(m => {
-        const existing = allSubjectsMap.get(m.subject) || { maxMtt: 0, maxExam: 0 };
+        const key = norm(m.subject);
+        const existing = allSubjectsMap.get(key) || { display: m.subject, maxMtt: 0, maxExam: 0 };
         existing.maxExam = Math.max(existing.maxExam, m.maxMarks);
-        allSubjectsMap.set(m.subject, existing);
+        allSubjectsMap.set(key, existing);
       });
     }
   });
@@ -59,6 +63,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     let conductMax = 100;
     let studentName = '';
     let dateOfBirth: string | undefined;
+    let indexNumber: string | undefined;
+    let extraFields: Record<string, string> = {};
     
     uploadedTerms.forEach(term => {
       const testStudent = term.testParsedData?.students[i];
@@ -66,6 +72,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       
       studentName = testStudent?.fullName || examStudent?.fullName || studentName;
       dateOfBirth = testStudent?.dateOfBirth || examStudent?.dateOfBirth || dateOfBirth;
+      indexNumber = testStudent?.indexNumber || examStudent?.indexNumber || indexNumber;
+      extraFields = { ...extraFields, ...(examStudent?.extraFields || {}), ...(testStudent?.extraFields || {}) };
       conductMarks = testStudent?.conductMarks || examStudent?.conductMarks || conductMarks;
       conductMax = testStudent?.conductMax || examStudent?.conductMax || conductMax;
       
@@ -73,9 +81,10 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       let termTotal = 0;
       let termMax = 0;
       
-      allSubjectsMap.forEach((maxValues, subjectName) => {
-        const testMark = testStudent?.marks.find(m => m.subject === subjectName);
-        const examMark = examStudent?.marks.find(m => m.subject === subjectName);
+      allSubjectsMap.forEach((maxValues, subjectKey) => {
+        const subjectName = maxValues.display;
+        const testMark = testStudent?.marks.find(m => norm(m.subject) === subjectKey);
+        const examMark = examStudent?.marks.find(m => norm(m.subject) === subjectKey);
         
         const mtt = testMark?.marks || 0;
         const exam = examMark?.marks || 0;
@@ -93,6 +102,7 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
           maxExam,
           maxTotal,
         });
+        
         
         termTotal += total;
         termMax += maxTotal;
@@ -118,13 +128,14 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     
     const subjectAverages: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[] = [];
     if (uploadedTerms.length === 3) {
-      allSubjectsMap.forEach((_, subjectName) => {
+      allSubjectsMap.forEach((val, subjectKey) => {
+        const subjectName = val.display;
         let totalTest = 0;
         let totalExam = 0;
         let totalTotal = 0;
         
         termsData.forEach(term => {
-          const mark = term.subjects.find(s => s.subject === subjectName);
+          const mark = term.subjects.find(s => norm(s.subject) === subjectKey);
           if (mark) {
             totalTest += mark.mtt;
             totalExam += mark.exam;
@@ -145,6 +156,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       id: `student-${i}`,
       fullName: studentName,
       dateOfBirth,
+      indexNumber,
+      extraFields: Object.keys(extraFields).length ? extraFields : undefined,
       conductMarks,
       conductMax,
       terms: termsData,
@@ -170,14 +183,14 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     });
 
     // Per-subject ranking within each term (competition ranking)
-    const subjects = Array.from(allSubjectsMap.keys());
-    subjects.forEach(subject => {
+    const subjectKeys = Array.from(allSubjectsMap.keys());
+    subjectKeys.forEach(subjectKey => {
       const subjectRanks = assignCompetitionRanks(
         students,
-        s => s.terms[termIndex]?.subjects.find(sub => sub.subject === subject)?.total || 0
+        s => s.terms[termIndex]?.subjects.find(sub => norm(sub.subject) === subjectKey)?.total || 0
       );
       subjectRanks.forEach((rank, student) => {
-        const mark = student.terms[termIndex]?.subjects.find(s => s.subject === subject);
+        const mark = student.terms[termIndex]?.subjects.find(s => norm(s.subject) === subjectKey);
         if (mark) mark.rank = rank;
       });
     });

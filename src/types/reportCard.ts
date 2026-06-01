@@ -18,6 +18,15 @@ export interface SchoolData {
   numberOfStudents?: number;
   academicYear?: string;
   fieldOrder?: string[];
+  customHeaders?: CustomHeader[];
+}
+
+/** A user-defined report-card header pulled from an Excel column title. */
+export interface CustomHeader {
+  /** Exact column title the user typed into the Excel sheet. */
+  columnTitle: string;
+  /** upper = above REPORT CARD title, lower = below (with student context). */
+  position: 'upper' | 'lower';
 }
 
 export interface Subject {
@@ -58,6 +67,8 @@ export interface Student {
   id: string;
   fullName: string;
   dateOfBirth?: string;
+  indexNumber?: string;
+  extraFields?: Record<string, string>;
   conductMarks: number;
   conductMax: number;
   terms: TermData[];
@@ -94,6 +105,8 @@ export interface ParsedSectionData {
 export interface ParsedStudent {
   fullName: string;
   dateOfBirth?: string;
+  indexNumber?: string;
+  extraFields?: Record<string, string>;
   marks: { subject: string; marks: number; maxMarks: number }[];
   conductMarks: number;
   conductMax: number;

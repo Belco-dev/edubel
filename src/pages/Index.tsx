@@ -177,6 +177,8 @@ const Index = () => {
           onCreateNew={handleCreateNew}
           template={template}
           onTemplateChange={setTemplate}
+          customHeaders={schoolData.customHeaders ?? []}
+          onCustomHeadersChange={(headers) => setSchoolData(prev => ({ ...prev, customHeaders: headers }))}
         />
 
         <div className="flex-1 flex flex-col min-w-0">

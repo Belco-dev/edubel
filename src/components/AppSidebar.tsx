@@ -1,4 +1,5 @@
-import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, Home, LayoutTemplate, Check } from 'lucide-react';
+import { useState } from 'react';
+import { Sun, Moon, Palette, BookOpen, ClipboardList, FileSpreadsheet, Download, Sparkles, Info, HelpCircle, RotateCcw, PlayCircle, Shield, Trash2, Home, LayoutTemplate, Check, Heading, Plus } from 'lucide-react';
 import edubelLogo from '@/assets/edubel-logo.png';
 import {
   Sidebar,
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeMode, ReportCardTemplate } from '@/types/reportCard';
+import { ThemeMode, ReportCardTemplate, CustomHeader } from '@/types/reportCard';
 import { Link } from 'react-router-dom';
 import { restartTutorial } from '@/components/TutorialGuide';
 import { usePWA } from '@/hooks/usePWA';
@@ -30,6 +31,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export type WizardStep = 'school' | 'terms' | 'upload' | 'grading' | 'preview';
 
@@ -41,6 +51,8 @@ interface AppSidebarProps {
   onCreateNew: () => void;
   template: ReportCardTemplate;
   onTemplateChange: (t: ReportCardTemplate) => void;
+  customHeaders: CustomHeader[];
+  onCustomHeadersChange: (headers: CustomHeader[]) => void;
 }
 
 const STEPS: { id: WizardStep; title: string; icon: typeof BookOpen }[] = [
@@ -65,10 +77,26 @@ const TEMPLATES: { id: ReportCardTemplate; label: string; desc: string }[] = [
   { id: 'duo', label: 'Duo (2 per page)', desc: 'Save paper — landscape, cut to split' },
 ];
 
-export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange }: AppSidebarProps) {
+export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange, customHeaders, onCustomHeadersChange }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { isOfflineReady, canInstall, install, clearStoredData } = usePWA();
+  const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPosition, setNewPosition] = useState<'upper' | 'lower'>('lower');
+
+  const addHeader = () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    if (customHeaders.some(h => h.columnTitle.toLowerCase() === title.toLowerCase())) return;
+    onCustomHeadersChange([...customHeaders, { columnTitle: title, position: newPosition }]);
+    setNewTitle('');
+    setNewPosition('lower');
+  };
+  const removeHeader = (title: string) => {
+    onCustomHeadersChange(customHeaders.filter(h => h.columnTitle !== title));
+  };
+
 
   return (
     <Sidebar collapsible="icon">
@@ -141,6 +169,15 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 >
                   <FileSpreadsheet className="h-4 w-4" />
                   {!collapsed && <span>Create Marks File</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setHeaderDialogOpen(true)} tooltip="Add Report Card Header">
+                  <Heading className="h-4 w-4" />
+                  {!collapsed && <span>Add Report Card Header</span>}
+                  {!collapsed && customHeaders.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1.5">{customHeaders.length}</Badge>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -263,6 +300,71 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
           </div>
         )}
       </SidebarFooter>
+
+      <Dialog open={headerDialogOpen} onOpenChange={setHeaderDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add a Report Card Header</DialogTitle>
+            <DialogDescription>
+              Type the exact column title you will add in your Excel sheet, then choose where it should show — above or below the "REPORT CARD" title. Each student's value from that column will appear on their report card.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="header-title">Excel column title</Label>
+              <Input
+                id="header-title"
+                placeholder="e.g. Index Number"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') addHeader(); }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Position on report card</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={newPosition === 'upper' ? 'default' : 'outline'}
+                  onClick={() => setNewPosition('upper')}
+                  size="sm"
+                >
+                  Above title
+                </Button>
+                <Button
+                  type="button"
+                  variant={newPosition === 'lower' ? 'default' : 'outline'}
+                  onClick={() => setNewPosition('lower')}
+                  size="sm"
+                >
+                  Below title
+                </Button>
+              </div>
+            </div>
+            <Button onClick={addHeader} disabled={!newTitle.trim()} className="w-full gap-1.5">
+              <Plus className="h-4 w-4" /> Add header
+            </Button>
+
+            {customHeaders.length > 0 && (
+              <div className="space-y-2 border-t border-border pt-3">
+                <Label className="text-xs text-muted-foreground">Current headers</Label>
+                {customHeaders.map((h) => (
+                  <div key={h.columnTitle} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{h.columnTitle}</p>
+                      <p className="text-[11px] text-muted-foreground">{h.position === 'upper' ? 'Above title' : 'Below title'}</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => removeHeader(h.columnTitle)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }
