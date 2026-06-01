@@ -77,10 +77,26 @@ const TEMPLATES: { id: ReportCardTemplate; label: string; desc: string }[] = [
   { id: 'duo', label: 'Duo (2 per page)', desc: 'Save paper — landscape, cut to split' },
 ];
 
-export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange }: AppSidebarProps) {
+export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, onCreateNew, template, onTemplateChange, customHeaders, onCustomHeadersChange }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { isOfflineReady, canInstall, install, clearStoredData } = usePWA();
+  const [headerDialogOpen, setHeaderDialogOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPosition, setNewPosition] = useState<'upper' | 'lower'>('lower');
+
+  const addHeader = () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    if (customHeaders.some(h => h.columnTitle.toLowerCase() === title.toLowerCase())) return;
+    onCustomHeadersChange([...customHeaders, { columnTitle: title, position: newPosition }]);
+    setNewTitle('');
+    setNewPosition('lower');
+  };
+  const removeHeader = (title: string) => {
+    onCustomHeadersChange(customHeaders.filter(h => h.columnTitle !== title));
+  };
+
 
   return (
     <Sidebar collapsible="icon">
