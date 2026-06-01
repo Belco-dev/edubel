@@ -172,6 +172,15 @@ export function AppSidebar({ theme, onThemeChange, currentStep, onStepChange, on
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setHeaderDialogOpen(true)} tooltip="Add Report Card Header">
+                  <Heading className="h-4 w-4" />
+                  {!collapsed && <span>Add Report Card Header</span>}
+                  {!collapsed && customHeaders.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto text-[10px] h-4 px-1.5">{customHeaders.length}</Badge>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton onClick={() => restartTutorial()} tooltip="Tutorial">
                   <PlayCircle className="h-4 w-4" />
                   {!collapsed && <span>Tutorial</span>}
