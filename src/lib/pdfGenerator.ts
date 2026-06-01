@@ -486,7 +486,7 @@ async function drawStudentReport(
   // Observations + Signatures box
   const boxY = finalY + 5 * s;
   const isAnnual = hasThreeTerms;
-  const boxHeight = (isAnnual ? 46 : 40) * s;
+  const boxHeight = (isAnnual ? 46 : 40) * s * denseF;
 
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(0.3 * s);
