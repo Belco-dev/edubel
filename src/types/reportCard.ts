@@ -67,6 +67,8 @@ export interface Student {
   id: string;
   fullName: string;
   dateOfBirth?: string;
+  indexNumber?: string;
+  extraFields?: Record<string, string>;
   conductMarks: number;
   conductMax: number;
   terms: TermData[];
