@@ -105,6 +105,8 @@ export interface ParsedSectionData {
 export interface ParsedStudent {
   fullName: string;
   dateOfBirth?: string;
+  indexNumber?: string;
+  extraFields?: Record<string, string>;
   marks: { subject: string; marks: number; maxMarks: number }[];
   conductMarks: number;
   conductMax: number;
