@@ -232,21 +232,31 @@ async function drawStudentReport(
     schoolY += id === 'name' ? 7.5 * s : schoolLineHeight;
   });
 
+  // Upper custom headers (above REPORT CARD title)
+  upperHeaders.forEach(h => {
+    const txt = `${h.label}: ${h.value}`;
+    doc.setFont('helvetica', 'bold');
+    autoFitText(doc, txt, schoolTextMaxWidth, 10 * s * denseF);
+    doc.text(txt, leftEdge + 3 * s, schoolY);
+    schoolY += schoolLineHeight;
+  });
+
   // REPORT CARD title with two boundary lines
   const titleY = boxStartY + schoolBlockHeight;
   doc.setDrawColor(...primaryColor);
   doc.setLineWidth(0.6 * s);
   doc.line(leftEdge, titleY, leftEdge + totalAvailWidth, titleY);
   doc.setFont(theme.titleFont, 'bold');
-  doc.setFontSize(20 * s);
+  doc.setFontSize(20 * s * denseF);
   doc.setTextColor(...primaryColor);
-  doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s, { align: 'center' });
+  doc.text('REPORT CARD', ox + regionW / 2, titleY + 9 * s * denseF, { align: 'center' });
   doc.line(leftEdge, titleY + titleBlockHeight, leftEdge + totalAvailWidth, titleY + titleBlockHeight);
   doc.setTextColor(...textBlack);
 
   // Student/class context
+  const ctxLine = 6 * s * denseF;
   const ctxStartY = titleY + titleBlockHeight;
-  let ctxY = ctxStartY + 6 * s;
+  let ctxY = ctxStartY + ctxLine;
   const halfBoxWidth = totalAvailWidth / 2 - 6 * s;
   const rightX = leftEdge + totalAvailWidth / 2 + 2 * s;
 
@@ -258,7 +268,7 @@ async function drawStudentReport(
   doc.setFont('helvetica', 'normal');
   autoFitText(doc, student.fullName, totalAvailWidth - sLabelW - 8 * s, 13 * s);
   doc.text(student.fullName, leftEdge + 3 * s + sLabelW, ctxY);
-  ctxY += 6 * s;
+  ctxY += ctxLine;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11 * s);
@@ -271,7 +281,7 @@ async function drawStudentReport(
     doc.setFont('helvetica', 'normal');
     doc.text(student.dateOfBirth || '', rightX + doc.getTextWidth('Born at: '), ctxY);
   }
-  ctxY += 6 * s;
+  ctxY += ctxLine;
 
   for (let i = 0; i < contextFields.length; i += 2) {
     const leftId = contextFields[i];
@@ -289,7 +299,23 @@ async function drawStudentReport(
     };
     if (leftId) drawField(leftId, leftEdge + 3 * s);
     if (rightId) drawField(rightId, rightX);
-    ctxY += 6 * s;
+    ctxY += ctxLine;
+  }
+
+  // Lower custom headers + index number (two-section left/right)
+  for (let i = 0; i < lowerHeaders.length; i += 2) {
+    const drawExtra = (item: { label: string; value: string }, x: number) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11 * s);
+      doc.text(`${item.label}:`, x, ctxY);
+      const lw = doc.getTextWidth(`${item.label}: `);
+      doc.setFont('helvetica', 'normal');
+      autoFitText(doc, item.value, halfBoxWidth - lw, 11 * s);
+      doc.text(item.value, x + lw, ctxY);
+    };
+    if (lowerHeaders[i]) drawExtra(lowerHeaders[i], leftEdge + 3 * s);
+    if (lowerHeaders[i + 1]) drawExtra(lowerHeaders[i + 1], rightX);
+    ctxY += ctxLine;
   }
 
   currentY = boxStartY + totalBoxHeight + 4 * s;
