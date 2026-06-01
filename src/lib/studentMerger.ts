@@ -59,6 +59,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     let conductMax = 100;
     let studentName = '';
     let dateOfBirth: string | undefined;
+    let indexNumber: string | undefined;
+    let extraFields: Record<string, string> = {};
     
     uploadedTerms.forEach(term => {
       const testStudent = term.testParsedData?.students[i];
@@ -66,6 +68,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       
       studentName = testStudent?.fullName || examStudent?.fullName || studentName;
       dateOfBirth = testStudent?.dateOfBirth || examStudent?.dateOfBirth || dateOfBirth;
+      indexNumber = testStudent?.indexNumber || examStudent?.indexNumber || indexNumber;
+      extraFields = { ...extraFields, ...(examStudent?.extraFields || {}), ...(testStudent?.extraFields || {}) };
       conductMarks = testStudent?.conductMarks || examStudent?.conductMarks || conductMarks;
       conductMax = testStudent?.conductMax || examStudent?.conductMax || conductMax;
       
