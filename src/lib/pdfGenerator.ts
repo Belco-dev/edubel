@@ -428,11 +428,13 @@ async function drawStudentReport(
   }
   columnStyles[numCols - 1] = { cellWidth: commentsColWidth, halign: 'left' };
 
-  // Keep marks/headers font size constant across term counts; the table
-  // auto-adjusts column widths and padding instead of shrinking text.
-  const baseFontSize = 10;
+  // Marks/headers font shrinks a little when there are many subjects so the
+  // whole table still fits on one page; column widths/padding also tighten.
+  const baseFontSize = veryDense ? 8 : dense ? 9 : 10;
   const fontSize = baseFontSize * s;
-  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s;
+  const cellPad = (hasThreeTerms ? 0.8 : (numTerms === 2 ? 1.2 : 1.6)) * s * denseF;
+  // Final position & percentage rows use a bigger font for quick reading.
+  const emphasisFont = (veryDense ? 11 : 13) * s;
 
   autoTable(doc, {
     startY: currentY,
@@ -444,7 +446,7 @@ async function drawStudentReport(
     styles: {
       fontSize,
       cellPadding: cellPad,
-      minCellHeight: 5.5 * s,
+      minCellHeight: 5.5 * s * denseF,
       valign: 'middle',
       lineColor: [0, 0, 0],
       lineWidth: 0.2 * s,
@@ -456,20 +458,25 @@ async function drawStudentReport(
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      minCellHeight: 5 * s,
+      minCellHeight: 5 * s * denseF,
       fontSize
     },
     bodyStyles: { halign: 'center', textColor: [0, 0, 0], fontStyle: boldBody ? 'bold' : 'normal' },
     columnStyles,
     didParseCell: (data) => {
       if (data.row.index === tableData.length - 3) data.cell.styles.fontStyle = 'bold';
+      // Percentage row — emphasise the percentage values.
       if (data.row.index === tableData.length - 2) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [235, 235, 235] : [248, 248, 248];
+        if (String(data.cell.raw).includes('%')) data.cell.styles.fontSize = emphasisFont;
       }
+      // Rank row — emphasise the final positions.
       if (data.row.index === tableData.length - 1) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.fillColor = isBlackWhite ? [230, 230, 230] : [245, 245, 245];
+        const raw = String(data.cell.raw).trim();
+        if (raw && raw !== '-' && data.column.index > 0) data.cell.styles.fontSize = emphasisFont;
       }
     },
   });
