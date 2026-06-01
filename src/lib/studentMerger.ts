@@ -183,11 +183,11 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     });
 
     // Per-subject ranking within each term (competition ranking)
-    const subjects = Array.from(allSubjectsMap.keys());
-    subjects.forEach(subject => {
+    const subjectKeys = Array.from(allSubjectsMap.keys());
+    subjectKeys.forEach(subjectKey => {
       const subjectRanks = assignCompetitionRanks(
         students,
-        s => s.terms[termIndex]?.subjects.find(sub => sub.subject === subject)?.total || 0
+        s => s.terms[termIndex]?.subjects.find(sub => norm(sub.subject) === subjectKey)?.total || 0
       );
       subjectRanks.forEach((rank, student) => {
         const mark = student.terms[termIndex]?.subjects.find(s => s.subject === subject);
