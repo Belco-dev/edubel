@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeMode, ReportCardTemplate } from '@/types/reportCard';
+import { ThemeMode, ReportCardTemplate, CustomHeader } from '@/types/reportCard';
 import { Link } from 'react-router-dom';
 import { restartTutorial } from '@/components/TutorialGuide';
 import { usePWA } from '@/hooks/usePWA';
@@ -31,6 +31,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export type WizardStep = 'school' | 'terms' | 'upload' | 'grading' | 'preview';
 
@@ -42,6 +51,8 @@ interface AppSidebarProps {
   onCreateNew: () => void;
   template: ReportCardTemplate;
   onTemplateChange: (t: ReportCardTemplate) => void;
+  customHeaders: CustomHeader[];
+  onCustomHeadersChange: (headers: CustomHeader[]) => void;
 }
 
 const STEPS: { id: WizardStep; title: string; icon: typeof BookOpen }[] = [
