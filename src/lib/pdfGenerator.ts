@@ -156,6 +156,26 @@ async function drawStudentReport(
   const topDetails = allDetails.filter(d => d.text && (d.position === 'topLeft' || d.position === 'topRight'));
   const bottomDetails = allDetails.filter(d => d.text && (d.position === 'bottomLeft' || d.position === 'bottomRight'));
 
+  // User-defined report-card headers pulled from Excel columns.
+  const customHeaders = school.customHeaders || [];
+  const getExtra = (title: string) => (student.extraFields?.[title] || '').trim();
+  const upperHeaders = customHeaders
+    .filter(h => h.position === 'upper' && getExtra(h.columnTitle) !== '')
+    .map(h => ({ label: h.columnTitle, value: getExtra(h.columnTitle) }));
+  const lowerHeaders: { label: string; value: string }[] = [];
+  if (student.indexNumber) lowerHeaders.push({ label: 'Index No', value: student.indexNumber });
+  customHeaders
+    .filter(h => h.position === 'lower' && getExtra(h.columnTitle) !== '')
+    .forEach(h => lowerHeaders.push({ label: h.columnTitle, value: getExtra(h.columnTitle) }));
+
+  // Density-aware compression so many subjects still fit on one page.
+  const subjCountForDensity = (student.terms[0]?.subjects || []).filter(s2 =>
+    selectedSubjects.length === 0 || selectedSubjects.includes(s2.subject)
+  ).length;
+  const dense = subjCountForDensity > 12;
+  const veryDense = subjCountForDensity > 16;
+  const denseF = veryDense ? 0.72 : dense ? 0.85 : 1;
+
   let currentY = oy + 5 * s;
 
   topDetails.forEach(detail => {
@@ -171,14 +191,14 @@ async function drawStudentReport(
   // ===== Boundary box header =====
   const boxStartY = currentY;
   const boxPadding = 5 * s;
-  const schoolLineHeight = 5.5 * s;
+  const schoolLineHeight = 5.5 * s * denseF;
   const minLogoSlot = school.logo ? 36 * s : 0;
-  const schoolTextHeight = boxPadding + schoolFields.length * schoolLineHeight + 3 * s;
+  const schoolTextHeight = boxPadding + schoolFields.length * schoolLineHeight + upperHeaders.length * schoolLineHeight + 3 * s;
   const schoolBlockHeight = Math.max(schoolTextHeight, minLogoSlot);
-  const titleBlockHeight = 14 * s;
+  const titleBlockHeight = 14 * s * denseF;
   const hasDateOfBirth = !!student.dateOfBirth;
-  const studentLines = 1 + 1 + Math.max(1, Math.ceil(contextFields.length / 2));
-  const studentBlockHeight = studentLines * 6 * s + boxPadding + 2 * s;
+  const studentLines = 1 + 1 + Math.max(1, Math.ceil(contextFields.length / 2)) + Math.ceil(lowerHeaders.length / 2);
+  const studentBlockHeight = studentLines * 6 * s * denseF + boxPadding + 2 * s;
   const totalBoxHeight = schoolBlockHeight + titleBlockHeight + studentBlockHeight;
 
   doc.setDrawColor(...primaryColor);
