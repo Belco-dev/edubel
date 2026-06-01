@@ -149,6 +149,8 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
       id: `student-${i}`,
       fullName: studentName,
       dateOfBirth,
+      indexNumber,
+      extraFields: Object.keys(extraFields).length ? extraFields : undefined,
       conductMarks,
       conductMax,
       terms: termsData,
