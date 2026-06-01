@@ -190,7 +190,7 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
         s => s.terms[termIndex]?.subjects.find(sub => norm(sub.subject) === subjectKey)?.total || 0
       );
       subjectRanks.forEach((rank, student) => {
-        const mark = student.terms[termIndex]?.subjects.find(s => s.subject === subject);
+        const mark = student.terms[termIndex]?.subjects.find(s => norm(s.subject) === subjectKey);
         if (mark) mark.rank = rank;
       });
     });
