@@ -128,13 +128,14 @@ export function mergeStudentsFromTerms(terms: TermUpload[]): Student[] {
     
     const subjectAverages: { subject: string; avgTest: number; avgExam: number; avgTotal: number }[] = [];
     if (uploadedTerms.length === 3) {
-      allSubjectsMap.forEach((_, subjectName) => {
+      allSubjectsMap.forEach((val, subjectKey) => {
+        const subjectName = val.display;
         let totalTest = 0;
         let totalExam = 0;
         let totalTotal = 0;
         
         termsData.forEach(term => {
-          const mark = term.subjects.find(s => s.subject === subjectName);
+          const mark = term.subjects.find(s => norm(s.subject) === subjectKey);
           if (mark) {
             totalTest += mark.mtt;
             totalExam += mark.exam;
