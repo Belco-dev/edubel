@@ -155,11 +155,11 @@ For code contributions:
 
 ## License
 
-A license has not yet been added. The source code is publicly visible, but reuse and redistribution rights are not granted until the maintainers add a license file.
+A license has not yet been added. The source code is publicly visible.
 
 ---
 
 <div align="center">
-  EduBel is maintained by <strong>Belco</strong> and is a division of <a href="https://belcom.carrd.co/">BELCOM Ltd</a>.<br />
+  EduBel is maintained by <strong>Belco</strong> and is a division of <a href="https://belcoportifolio.netlify.app/">Belco Lab.</a>.<br />
   <a href="https://github.com/Belco-dev/edubel/issues">Questions or feedback? Open an issue.</a>
 </div>
